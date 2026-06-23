@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "BENDAHARA" | "ANGGOTA";
+export type Role = "ADMIN" | "SEKERTARIS" | "BENDAHARA" | "ANGGOTA";
 
 export interface AuthUser {
   id: number;

@@ -59,6 +59,7 @@ const EMPTY_FORM: FormState = {
 
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Admin",
+  SEKERTARIS: "Sekertaris",
   BENDAHARA: "Bendahara",
   ANGGOTA: "Anggota",
 };
@@ -225,6 +226,7 @@ export function AnggotaFormDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ADMIN">{ROLE_LABEL.ADMIN}</SelectItem>
+                  <SelectItem value="SEKERTARIS">{ROLE_LABEL.SEKERTARIS}</SelectItem>
                   <SelectItem value="BENDAHARA">{ROLE_LABEL.BENDAHARA}</SelectItem>
                   <SelectItem value="ANGGOTA">{ROLE_LABEL.ANGGOTA}</SelectItem>
                 </SelectContent>

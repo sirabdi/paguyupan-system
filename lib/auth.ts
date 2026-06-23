@@ -43,3 +43,8 @@ export async function requireRole(...roles: Role[]): Promise<AuthResult> {
 export async function requireAdmin(): Promise<AuthResult> {
   return requireRole("ADMIN");
 }
+
+/** Shortcut: Admin dan Sekertaris boleh (CRUD news). */
+export async function requireNewsEditor(): Promise<AuthResult> {
+  return requireRole("ADMIN", "SEKERTARIS");
+}

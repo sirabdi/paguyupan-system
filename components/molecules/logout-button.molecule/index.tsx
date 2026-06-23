@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { LogOutIcon } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/atoms";
 import { logout } from "@/modules";
 

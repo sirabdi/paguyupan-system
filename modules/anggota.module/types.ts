@@ -2,7 +2,7 @@
 // Bentuk data mengikuti respons JSON dari /api/anggota.
 
 export type StatusAnggota = "AKTIF" | "NONAKTIF";
-export type Role = "ADMIN" | "BENDAHARA" | "ANGGOTA";
+export type Role = "ADMIN" | "SEKERTARIS" | "BENDAHARA" | "ANGGOTA";
 
 export interface Anggota {
   id: number;

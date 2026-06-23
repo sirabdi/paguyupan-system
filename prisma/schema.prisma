@@ -27,17 +27,33 @@ model Anggota {
   tanggalGabung DateTime      @default(now()) @map("tanggal_gabung")
 
   iuran     Iuran[]
+  news      News[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("anggota")
 }
 
+model News {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  konten    String   @db.Text
+  bannerUrl String?  @map("banner_url")
+  penulis   Anggota  @relation(fields: [penulisId], references: [id])
+  penulisId Int      @map("penulis_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([penulisId])
+  @@map("news")
+}
+
 model Iuran {
   id           Int         @id @default(autoincrement())
   anggota      Anggota     @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
   anggotaId    Int         @map("anggota_id")
-  periode      String      // format YYYY-MM, mis. "2026-06"
+  periode      String
   jumlah       Decimal     @db.Decimal(12, 2)
   status       StatusIuran @default(BELUM_BAYAR)
   tanggalBayar DateTime?   @map("tanggal_bayar")
@@ -45,7 +61,6 @@ model Iuran {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  // satu anggota hanya punya satu tagihan per periode
   @@unique([anggotaId, periode])
   @@index([periode])
   @@map("iuran")
@@ -57,6 +72,7 @@ model Iuran {
 
 enum Role {
   ADMIN
+  SEKERTARIS
   BENDAHARA
   ANGGOTA
 }

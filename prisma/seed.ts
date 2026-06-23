@@ -15,6 +15,14 @@ async function main() {
       alamat: "Jl. Merdeka No. 1, Jakarta",
     },
     {
+      nama: "Rina Wulandari",
+      email: "rina@paguyupan.id",
+      password: "rina1234",
+      role: "SEKERTARIS" as const,
+      noTelp: "081987654321",
+      alamat: "Jl. Cempaka No. 9, Malang",
+    },
+    {
       nama: "Siti Rahayu",
       email: "siti@paguyupan.id",
       password: "siti1234",

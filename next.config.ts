@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    // Izinkan gambar dari /uploads (disimpan di public/uploads)
+    localPatterns: [{ pathname: "/uploads/**" }],
+  },
 };
 
 export default nextConfig;

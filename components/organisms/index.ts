@@ -1,2 +1,5 @@
 export * from "./anggota-table.organism";
+export * from "./mobile-guest-shell.organism";
 export * from "./navbar.organism";
+export * from "./news-form.organism";
+export * from "./news-table.organism";

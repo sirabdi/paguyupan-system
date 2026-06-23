@@ -1,4 +1,5 @@
 export * from "./alert-dialog.atom";
+export * from "./rich-text-editor.atom";
 export * from "./badge.atom";
 export * from "./button.atom";
 export * from "./card.atom";

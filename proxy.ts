@@ -17,7 +17,9 @@ export default async function proxy(req: NextRequest) {
 
   // Sudah login tapi buka /login → arahkan sesuai role
   if (isPublicRoute && session) {
-    const dest = session.role === "ADMIN" ? "/anggota" : "/guest";
+    let dest = "/guest";
+    if (session.role === "ADMIN") dest = "/anggota";
+    else if (session.role === "SEKERTARIS") dest = "/news";
     return NextResponse.redirect(new URL(dest, req.nextUrl));
   }
 
