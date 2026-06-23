@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/iuran-bulanan",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}

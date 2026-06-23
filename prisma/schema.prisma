@@ -1,0 +1,64 @@
+// Prisma schema — paguyupan-system
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Models
+// ============================================================
+
+model Anggota {
+  id            Int           @id @default(autoincrement())
+  nama          String
+  alamat        String?       @db.Text
+  noTelp        String?       @map("no_telp")
+  email         String?       @unique
+  status        StatusAnggota @default(AKTIF)
+  tanggalGabung DateTime      @default(now()) @map("tanggal_gabung")
+
+  iuran     Iuran[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("anggota")
+}
+
+model Iuran {
+  id           Int         @id @default(autoincrement())
+  anggota      Anggota     @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId    Int         @map("anggota_id")
+  periode      String      // format YYYY-MM, mis. "2026-06"
+  jumlah       Decimal     @db.Decimal(12, 2)
+  status       StatusIuran @default(BELUM_BAYAR)
+  tanggalBayar DateTime?   @map("tanggal_bayar")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // satu anggota hanya punya satu tagihan per periode
+  @@unique([anggotaId, periode])
+  @@index([periode])
+  @@map("iuran")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum StatusAnggota {
+  AKTIF
+  NONAKTIF
+}
+
+enum StatusIuran {
+  BELUM_BAYAR
+  LUNAS
+}
