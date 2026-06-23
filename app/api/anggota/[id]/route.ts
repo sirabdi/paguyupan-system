@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin, requireAuth } from "@/lib/auth";
 
-// Di Next.js 15+/16, `params` adalah Promise dan harus di-await.
 type RouteContext = { params: Promise<{ id: string }> };
 
-// GET /api/anggota/:id  — detail anggota + riwayat iuran
+// GET /api/anggota/:id — semua role login
 export async function GET(_req: Request, { params }: RouteContext) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const anggotaId = Number(id);
   if (!Number.isInteger(anggotaId)) {
@@ -15,7 +18,12 @@ export async function GET(_req: Request, { params }: RouteContext) {
 
   const anggota = await prisma.anggota.findUnique({
     where: { id: anggotaId },
-    include: { iuran: { orderBy: { periode: "desc" } } },
+    select: {
+      id: true, nama: true, alamat: true, noTelp: true,
+      email: true, role: true, status: true, tanggalGabung: true,
+      createdAt: true, updatedAt: true,
+      iuran: { orderBy: { periode: "desc" } },
+    },
   });
 
   if (!anggota) {
@@ -24,8 +32,12 @@ export async function GET(_req: Request, { params }: RouteContext) {
   return NextResponse.json(anggota);
 }
 
-// PUT /api/anggota/:id — update sebagian field
+// PUT /api/anggota/:id — hanya Admin
+// Body: { nama?, alamat?, noTelp?, email?, status?, role?, password? }
 export async function PUT(req: Request, { params }: RouteContext) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const anggotaId = Number(id);
   if (!Number.isInteger(anggotaId)) {
@@ -38,7 +50,22 @@ export async function PUT(req: Request, { params }: RouteContext) {
   } catch {
     return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 });
   }
-  const { nama, alamat, noTelp, email, status } = (body ?? {}) as Record<string, unknown>;
+  const { nama, alamat, noTelp, email, status, role, password } =
+    (body ?? {}) as Record<string, unknown>;
+
+  const validRoles = ["ADMIN", "BENDAHARA", "ANGGOTA"] as const;
+
+  let passwordHash: string | undefined;
+  if (typeof password === "string") {
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: "Password minimal 8 karakter" },
+        { status: 400 }
+      );
+    }
+    const { hash } = await import("bcryptjs");
+    passwordHash = await hash(password, 12);
+  }
 
   try {
     const anggota = await prisma.anggota.update({
@@ -47,8 +74,14 @@ export async function PUT(req: Request, { params }: RouteContext) {
         ...(typeof nama === "string" ? { nama: nama.trim() } : {}),
         ...(typeof alamat === "string" ? { alamat } : {}),
         ...(typeof noTelp === "string" ? { noTelp } : {}),
-        ...(typeof email === "string" ? { email } : {}),
+        ...(typeof email === "string" ? { email: email.trim().toLowerCase() } : {}),
         ...(status === "AKTIF" || status === "NONAKTIF" ? { status } : {}),
+        ...(validRoles.includes(role as never) ? { role: role as (typeof validRoles)[number] } : {}),
+        ...(passwordHash ? { passwordHash } : {}),
+      },
+      select: {
+        id: true, nama: true, email: true, role: true,
+        status: true, updatedAt: true,
       },
     });
     return NextResponse.json(anggota);
@@ -65,8 +98,11 @@ export async function PUT(req: Request, { params }: RouteContext) {
   }
 }
 
-// DELETE /api/anggota/:id
+// DELETE /api/anggota/:id — hanya Admin
 export async function DELETE(_req: Request, { params }: RouteContext) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const anggotaId = Number(id);
   if (!Number.isInteger(anggotaId)) {

@@ -2,13 +2,15 @@
 // Bentuk data mengikuti respons JSON dari /api/anggota.
 
 export type StatusAnggota = "AKTIF" | "NONAKTIF";
+export type Role = "ADMIN" | "BENDAHARA" | "ANGGOTA";
 
 export interface Anggota {
   id: number;
   nama: string;
   alamat: string | null;
   noTelp: string | null;
-  email: string | null;
+  email: string;
+  role: Role;
   status: StatusAnggota;
   tanggalGabung: string; // ISO string
   createdAt: string;

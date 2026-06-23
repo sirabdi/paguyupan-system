@@ -15,10 +15,12 @@ export interface AnggotaFilter {
 // string kosong bisa bentrok dengan anggota lain tanpa email).
 export interface AnggotaInput {
   nama: string;
-  email?: string;
+  email: string;
+  password?: string;
   noTelp: string;
   alamat: string;
   status: StatusAnggota;
+  role?: import("./types").Role;
 }
 
 async function toError(res: Response, fallback: string): Promise<Error> {

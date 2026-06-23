@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-// PATCH /api/iuran/:id/bayar — tandai tagihan sebagai LUNAS
+// PATCH /api/iuran/:id/bayar — tandai LUNAS, hanya Admin
 export async function PATCH(_req: Request, { params }: RouteContext) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const iuranId = Number(id);
   if (!Number.isInteger(iuranId)) {
