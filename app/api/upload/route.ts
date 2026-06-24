@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { extname } from "path";
 import { requireNewsEditor } from "@/lib/auth";
 import { randomBytes } from "crypto";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+async function saveFile(file: File, filename: string): Promise<string> {
+  if (process.env.VERCEL) {
+    const { put } = await import("@vercel/blob");
+    const blob = await put(`uploads/${filename}`, file, { access: "public" });
+    return blob.url;
+  }
+
+  const { writeFile, mkdir } = await import("fs/promises");
+  const { join } = await import("path");
+  const uploadDir = join(process.cwd(), "public", "uploads");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
+  return `/uploads/${filename}`;
+}
 
 // POST /api/upload  — hanya Admin & Sekertaris
 export async function POST(req: Request) {
@@ -36,9 +50,8 @@ export async function POST(req: Request) {
   }
 
   const ext = extname(file.name) || `.${file.type.split("/")[1]}`;
-  const filename = `uploads/${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
+  const filename = `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
 
-  const blob = await put(filename, file, { access: "public" });
-
-  return NextResponse.json({ url: blob.url }, { status: 201 });
+  const url = await saveFile(file, filename);
+  return NextResponse.json({ url }, { status: 201 });
 }

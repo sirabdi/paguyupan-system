@@ -59,10 +59,7 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
     : allNews;
 
   return (
-    <div
-      className="relative flex w-full max-w-[390px] flex-col overflow-hidden bg-zinc-50 shadow-2xl"
-      style={{ height: "100dvh", maxHeight: 820 }}
-    >
+    <div className="relative flex w-full md:w-97.5 flex-col overflow-hidden bg-zinc-50 h-screen">
       {tab === "home" && (
         <HomeTab
           firstName={firstName}

@@ -37,12 +37,9 @@ export default function LoginPage() {
   const loading = mutation.isPending;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-100">
       {/* Phone shell */}
-      <div
-        className="relative flex items-center w-full max-w-[390px] overflow-hidden bg-white shadow-2xl"
-        style={{ minHeight: 780 }}
-      >
+      <div className="relative flex items-center w-full md:w-97.5 overflow-hidden bg-white h-screen">
         <div className="flex flex-col gap-6 w-full">
           <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10">
             <LockIcon className="size-5 text-primary" />
