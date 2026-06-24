@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     // Izinkan gambar dari /uploads (disimpan di public/uploads)
     localPatterns: [{ pathname: "/uploads/**" }],
   },
+  // Sertakan Prisma query engine binary ke dalam serverless bundle Vercel.
+  // Tanpa ini, binary rhel tidak ter-copy dan Prisma gagal di runtime Lambda.
+  outputFileTracingIncludes: {
+    "**": ["./generated/prisma/**"],
+  },
 };
 
 export default nextConfig;
