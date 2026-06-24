@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join, extname } from "path";
+import { put } from "@vercel/blob";
+import { extname } from "path";
 import { requireNewsEditor } from "@/lib/auth";
 import { randomBytes } from "crypto";
 
@@ -36,11 +36,9 @@ export async function POST(req: Request) {
   }
 
   const ext = extname(file.name) || `.${file.type.split("/")[1]}`;
-  const filename = `${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
+  const filename = `uploads/${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
 
-  const uploadDir = join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
+  const blob = await put(filename, file, { access: "public" });
 
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  return NextResponse.json({ url: blob.url }, { status: 201 });
 }

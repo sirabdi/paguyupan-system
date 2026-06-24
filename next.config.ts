@@ -7,8 +7,8 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   images: {
-    // Izinkan gambar dari /uploads (disimpan di public/uploads)
     localPatterns: [{ pathname: "/uploads/**" }],
+    remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
   },
 };
 
