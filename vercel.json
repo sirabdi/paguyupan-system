@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "app/api/**": {
+      "includeFiles": "generated/prisma/**"
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/iuran-bulanan",
