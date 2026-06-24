@@ -40,8 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# generated/prisma dikecualikan dari gitignore agar binary rhel ter-commit untuk Vercel
-# /generated/prisma
+/generated/prisma
 
 # uploaded files — abaikan isinya, tapi pertahankan foldernya
 /public/uploads/*

@@ -1,7 +1,7 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { Role } from "@/generated/prisma/client";
+import type { Role } from "@prisma/client";
 
 const SESSION_COOKIE = "session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8; // 8 jam

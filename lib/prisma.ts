@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 // Singleton: hindari membuat koneksi baru tiap hot-reload saat development.
 // Di production, satu instance per proses.

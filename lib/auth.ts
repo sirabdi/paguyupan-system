@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import type { Role } from "@/generated/prisma/client";
+import type { Role } from "@prisma/client";
 import { getSession, type SessionPayload } from "@/lib/session";
 
 export type AuthResult =
