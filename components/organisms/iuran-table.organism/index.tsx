@@ -50,20 +50,9 @@ import {
   type Iuran,
   type StatusIuranFilter,
 } from "@/modules";
-import { formatDate } from "@/utils";
+import { formatDate, formatPeriode, formatRupiah } from "@/utils";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-const rupiahFmt = new Intl.NumberFormat("id-ID", {
-  style: "currency",
-  currency: "IDR",
-  maximumFractionDigits: 0,
-});
-
-function formatRupiah(val: string) {
-  const n = parseFloat(val);
-  return Number.isNaN(n) ? val : rupiahFmt.format(n);
-}
 
 /** Hasilkan daftar periode YYYY-MM dari bulan ini mundur sejumlah `count`. */
 function generatePeriodes(count = 13): string[] {
@@ -76,12 +65,6 @@ function generatePeriodes(count = 13): string[] {
     result.push(`${y}-${m}`);
   }
   return result;
-}
-
-function periodeLabel(ym: string) {
-  const [y, m] = ym.split("-");
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  return d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 }
 
 const PERIODES = generatePeriodes(13);
@@ -125,7 +108,7 @@ export function IuranTable({ canBayar }: Props) {
     mutationFn: (iuran: Iuran) => bayarIuran(iuran.id),
     onSuccess: (_updated, iuran) => {
       toast.success(
-        `Iuran ${iuran.anggota.nama} — ${periodeLabel(iuran.periode)} ditandai lunas`,
+        `Iuran ${iuran.anggota.nama} — ${formatPeriode(iuran.periode)} ditandai lunas`,
       );
       queryClient.invalidateQueries({ queryKey: IURAN_KEY });
       setKonfirmasiTarget(null);
@@ -169,13 +152,13 @@ export function IuranTable({ canBayar }: Props) {
             <Select value={periode} onValueChange={(v) => v && setPeriode(v)}>
               <SelectTrigger className="sm:w-52">
                 <SelectValue>
-                  {(v) => periodeLabel((v as string) ?? PERIODES[0])}
+                  {(v) => formatPeriode((v as string) ?? PERIODES[0])}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {PERIODES.map((p) => (
                   <SelectItem key={p} value={p}>
-                    {periodeLabel(p)}
+                    {formatPeriode(p)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -269,7 +252,7 @@ export function IuranTable({ canBayar }: Props) {
                         {iuran.anggota.nama}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {periodeLabel(iuran.periode)}
+                        {formatPeriode(iuran.periode)}
                       </TableCell>
                       <TableCell>{formatRupiah(iuran.jumlah)}</TableCell>
                       <TableCell>
@@ -336,7 +319,7 @@ export function IuranTable({ canBayar }: Props) {
               </span>{" "}
               periode{" "}
               <span className="font-medium text-foreground">
-                {konfirmasiTarget ? periodeLabel(konfirmasiTarget.periode) : ""}
+                {konfirmasiTarget ? formatPeriode(konfirmasiTarget.periode) : ""}
               </span>{" "}
               sebagai <span className="font-medium text-foreground">Lunas</span>
               ? Tindakan ini tidak dapat dibatalkan.

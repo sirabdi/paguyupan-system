@@ -78,7 +78,7 @@ export function HomeTab({
             {!q && featured && (
               <div className="mb-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Trending
+                  Paling Baru
                 </p>
                 <FeaturedCard news={featured} />
               </div>

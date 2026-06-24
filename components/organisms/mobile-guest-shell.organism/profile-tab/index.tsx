@@ -14,7 +14,6 @@ import {
 
 import { logout } from "@/modules";
 import type { ProfileData } from "../index";
-import { HeaderActions } from "@/components/molecules";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin",

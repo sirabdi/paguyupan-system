@@ -6,13 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Loader2Icon, EyeIcon, EyeOffIcon, LockIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  Button,
-  CardDescription,
-  CardTitle,
-  Input,
-  Label,
-} from "@/components/atoms";
+import { Button, Input, Label } from "@/components/atoms";
 import { login } from "@/modules";
 
 export default function LoginPage() {
@@ -118,7 +112,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                className="mt-2 h-12 w-full text-sm font-semibold"
+                className="mt-2 h-10 w-full text-sm font-semibold"
                 disabled={loading}
               >
                 {loading && <Loader2Icon className="animate-spin" />}

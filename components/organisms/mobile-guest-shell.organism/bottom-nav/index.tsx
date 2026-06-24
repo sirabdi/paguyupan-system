@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { HomeIcon, NewspaperIcon, UserIcon } from "lucide-react";
+import { HomeIcon, NewspaperIcon, UserIcon, WalletIcon } from "lucide-react";
 
-type Tab = "home" | "news" | "profile";
+type Tab = "home" | "news" | "iuran" | "profile";
 
 type Props = {
   active: Tab;
@@ -24,6 +24,12 @@ export function BottomNav({ active, onChange }: Props) {
         icon={<NewspaperIcon className="size-5" />}
         label="Berita"
         onClick={() => onChange("news")}
+      />
+      <NavTab
+        active={active === "iuran"}
+        icon={<WalletIcon className="size-5" />}
+        label="Iuran"
+        onClick={() => onChange("iuran")}
       />
       <NavTab
         active={active === "profile"}

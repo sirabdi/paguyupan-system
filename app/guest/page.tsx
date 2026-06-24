@@ -17,6 +17,12 @@ export default async function GuestPage() {
     select: { nama: true, email: true, alamat: true, noTelp: true, tanggalGabung: true },
   });
 
+  const iuran = await prisma.iuran.findMany({
+    where: { anggotaId: session.anggotaId },
+    orderBy: { periode: "desc" },
+    select: { id: true, periode: true, jumlah: true, status: true, tanggalBayar: true },
+  });
+
   const firstName = anggota?.nama.split(" ")[0] ?? "Anggota";
 
   return (
@@ -31,6 +37,13 @@ export default async function GuestPage() {
           noTelp: anggota?.noTelp ?? null,
           tanggalGabung: anggota?.tanggalGabung?.toISOString() ?? null,
         }}
+        iuran={iuran.map((i) => ({
+          id: i.id,
+          periode: i.periode,
+          jumlah: i.jumlah.toString(),
+          status: i.status,
+          tanggalBayar: i.tanggalBayar?.toISOString() ?? null,
+        }))}
       />
     </div>
   );

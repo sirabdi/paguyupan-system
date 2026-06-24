@@ -6,10 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchNews, NEWS_KEY } from "@/modules";
 import { HomeTab } from "./home-tab";
 import { NewsTab } from "./news-tab";
+import { IuranTab } from "./iuran-tab";
 import { ProfileTab } from "./profile-tab";
 import { BottomNav } from "./bottom-nav";
 
-type Tab = "home" | "news" | "profile";
+type Tab = "home" | "news" | "iuran" | "profile";
 
 export type ProfileData = {
   nama: string;
@@ -19,13 +20,22 @@ export type ProfileData = {
   tanggalGabung: string | null;
 };
 
+export type IuranItem = {
+  id: number;
+  periode: string; // YYYY-MM
+  jumlah: string; // Decimal sebagai string
+  status: "BELUM_BAYAR" | "LUNAS";
+  tanggalBayar: string | null;
+};
+
 type Props = {
   firstName: string;
   role: string;
   profile: ProfileData;
+  iuran: IuranItem[];
 };
 
-export function MobileGuestShell({ firstName, role, profile }: Props) {
+export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
 
@@ -68,6 +78,8 @@ export function MobileGuestShell({ firstName, role, profile }: Props) {
       )}
 
       {tab === "news" && <NewsTab role={role} />}
+
+      {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}
 
       {tab === "profile" && <ProfileTab role={role} profile={profile} />}
 

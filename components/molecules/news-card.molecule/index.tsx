@@ -34,8 +34,8 @@ export function FeaturedCard({ news }: { news: News }) {
           </div>
         )}
         <div className="p-4 flex flex-col gap-1">
-          <span className="mb-1.5 w-fit inline-block rounded-xs bg-zinc-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
-            Trending
+          <span className="mb-1.5 w-fit inline-block rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-green-600">
+            Paling Baru
           </span>
           <h3 className="line-clamp-2 text-sm font-bold leading-snug text-zinc-900">
             {news.judul}
