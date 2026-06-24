@@ -14,14 +14,24 @@ export default async function GuestPage() {
 
   const anggota = await prisma.anggota.findUnique({
     where: { id: session.anggotaId },
-    select: { nama: true },
+    select: { nama: true, email: true, alamat: true, noTelp: true, tanggalGabung: true },
   });
 
   const firstName = anggota?.nama.split(" ")[0] ?? "Anggota";
 
   return (
     <div className="flex h-screen items-center justify-center overflow-hidden bg-zinc-100">
-      <MobileGuestShell firstName={firstName} role={session.role} />
+      <MobileGuestShell
+        firstName={firstName}
+        role={session.role}
+        profile={{
+          nama: anggota?.nama ?? "-",
+          email: anggota?.email ?? "-",
+          alamat: anggota?.alamat ?? null,
+          noTelp: anggota?.noTelp ?? null,
+          tanggalGabung: anggota?.tanggalGabung?.toISOString() ?? null,
+        }}
+      />
     </div>
   );
 }

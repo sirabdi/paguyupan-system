@@ -14,6 +14,7 @@ export async function Navbar() {
   const role = session?.role;
 
   const showAnggota = role === "ADMIN";
+  const showIuran = role === "ADMIN" || role === "BENDAHARA";
   const showNews = Boolean(role);
 
   return (
@@ -31,6 +32,14 @@ export async function Navbar() {
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               Anggota
+            </Link>
+          )}
+          {showIuran && (
+            <Link
+              href="/iuran"
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Iuran
             </Link>
           )}
           {showNews && (

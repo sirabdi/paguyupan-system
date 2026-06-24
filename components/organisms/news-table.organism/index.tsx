@@ -47,6 +47,7 @@ import {
 } from "@/components/atoms";
 
 import { NEWS_KEY, deleteNews, fetchNews, type News } from "@/modules";
+import { formatDate, stripHtml } from "@/utils";
 
 type Props = { canEdit: boolean };
 
@@ -57,12 +58,6 @@ const ROLE_LABEL: Record<string, string> = {
   ANGGOTA: "Anggota",
 };
 
-const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" });
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : dateFormatter.format(d);
-}
-
 function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = React.useState(value);
   React.useEffect(() => {
@@ -70,10 +65,6 @@ function useDebounced<T>(value: T, delay: number): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
-}
-
-function stripHtml(html: string) {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export function NewsTable({ canEdit }: Props) {
@@ -84,7 +75,13 @@ export function NewsTable({ canEdit }: Props) {
   const debouncedQ = useDebounced(q, 250);
   const [deleteTarget, setDeleteTarget] = React.useState<News | null>(null);
 
-  const { data = [], isPending, isError, isFetching, refetch } = useQuery({
+  const {
+    data = [],
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: [...NEWS_KEY, debouncedQ],
     queryFn: () => fetchNews(debouncedQ),
     placeholderData: (prev) => prev,
@@ -110,7 +107,9 @@ export function NewsTable({ canEdit }: Props) {
           Berita
         </CardTitle>
         <CardDescription>
-          {isPending ? "Memuat data…" : `${data.length} berita${q ? " (terfilter)" : ""}`}
+          {isPending
+            ? "Memuat data…"
+            : `${data.length} berita${q ? " (terfilter)" : ""}`}
         </CardDescription>
         {canEdit && (
           <CardAction>
@@ -143,10 +142,14 @@ export function NewsTable({ canEdit }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Judul</TableHead>
-                <TableHead className="hidden md:table-cell">Ringkasan</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  Ringkasan
+                </TableHead>
                 <TableHead>Penulis</TableHead>
                 <TableHead className="hidden lg:table-cell">Tanggal</TableHead>
-                {canEdit && <TableHead className="w-12 text-right">Aksi</TableHead>}
+                {canEdit && (
+                  <TableHead className="w-24 text-center">Aksi</TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -154,7 +157,9 @@ export function NewsTable({ canEdit }: Props) {
                 Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
                     {Array.from({ length: canEdit ? 5 : 4 }).map((__, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -163,7 +168,11 @@ export function NewsTable({ canEdit }: Props) {
                   <TableCell colSpan={canEdit ? 5 : 4}>
                     <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
                       <p>Gagal memuat berita.</p>
-                      <Button variant="outline" size="sm" onClick={() => refetch()}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetch()}
+                      >
                         <RefreshCwIcon /> Coba lagi
                       </Button>
                     </div>
@@ -174,9 +183,17 @@ export function NewsTable({ canEdit }: Props) {
                   <TableCell colSpan={canEdit ? 5 : 4}>
                     <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
                       <InboxIcon className="size-8" />
-                      <p>{q ? "Tidak ada berita yang cocok." : "Belum ada berita."}</p>
+                      <p>
+                        {q
+                          ? "Tidak ada berita yang cocok."
+                          : "Belum ada berita."}
+                      </p>
                       {canEdit && !q && (
-                        <Button variant="outline" size="sm" onClick={() => router.push("/news/create")}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push("/news/create")}
+                        >
                           <PlusIcon /> Tambah berita pertama
                         </Button>
                       )}
@@ -186,9 +203,13 @@ export function NewsTable({ canEdit }: Props) {
               ) : (
                 data.map((n) => (
                   <TableRow key={n.id}>
-                    <TableCell className="font-medium max-w-xs truncate">{n.judul}</TableCell>
-                    <TableCell className="hidden md:table-cell max-w-sm text-muted-foreground">
-                      <span className="line-clamp-1">{stripHtml(n.konten)}</span>
+                    <TableCell className="font-medium max-w-xs truncate">
+                      {n.judul}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell max-w-sm text-muted-foreground whitespace-normal">
+                      <span className="line-clamp-1">
+                        {stripHtml(n.konten)}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
@@ -202,7 +223,7 @@ export function NewsTable({ canEdit }: Props) {
                       {formatDate(n.createdAt)}
                     </TableCell>
                     {canEdit && (
-                      <TableCell className="text-right">
+                      <TableCell className="w-24 text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={<Button variant="ghost" size="icon-sm" />}
@@ -211,7 +232,9 @@ export function NewsTable({ canEdit }: Props) {
                             <EllipsisIcon />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/news/edit/${n.id}`)}>
+                            <DropdownMenuItem
+                              onClick={() => router.push(`/news/edit/${n.id}`)}
+                            >
                               <PencilIcon /> Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -235,14 +258,18 @@ export function NewsTable({ canEdit }: Props) {
       {/* Konfirmasi hapus */}
       <AlertDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => { if (!open && !deleting) setDeleteTarget(null); }}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus berita?</AlertDialogTitle>
             <AlertDialogDescription>
               Berita{" "}
-              <span className="font-medium text-foreground">&ldquo;{deleteTarget?.judul}&rdquo;</span>{" "}
+              <span className="font-medium text-foreground">
+                &ldquo;{deleteTarget?.judul}&rdquo;
+              </span>{" "}
               akan dihapus permanen dan tidak dapat dikembalikan.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -250,7 +277,9 @@ export function NewsTable({ canEdit }: Props) {
             <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
+              onClick={() =>
+                deleteTarget && deleteMutation.mutate(deleteTarget)
+              }
               disabled={deleting}
             >
               {deleting ? "Menghapus…" : "Hapus"}

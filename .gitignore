@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /generated/prisma
+
+# uploaded files — abaikan isinya, tapi pertahankan foldernya
+/public/uploads/*
+!/public/uploads/.gitkeep

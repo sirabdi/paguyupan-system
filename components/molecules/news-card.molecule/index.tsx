@@ -4,6 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ClockIcon, NewspaperIcon } from "lucide-react";
 
 import { type News } from "@/modules";
+import { formatDate, stripHtml } from "@/utils";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin",
@@ -11,19 +12,6 @@ const ROLE_LABEL: Record<string, string> = {
   BENDAHARA: "Bendahara",
   ANGGOTA: "Anggota",
 };
-
-const dateFormatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" });
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : dateFormatter.format(d);
-}
-
-function stripHtml(html: string) {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export function FeaturedCard({ news }: { news: News }) {
   const [open, setOpen] = React.useState(false);
@@ -45,14 +33,14 @@ export function FeaturedCard({ news }: { news: News }) {
             <NewspaperIcon className="size-10 text-blue-300" />
           </div>
         )}
-        <div className="p-4">
-          <span className="mb-1.5 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-600">
+        <div className="p-4 flex flex-col gap-1">
+          <span className="mb-1.5 w-fit inline-block rounded-xs bg-zinc-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
             Trending
           </span>
           <h3 className="line-clamp-2 text-sm font-bold leading-snug text-zinc-900">
             {news.judul}
           </h3>
-          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
             <ClockIcon className="size-3" />
             <span>{formatDate(news.createdAt)}</span>
             <span>·</span>
@@ -72,26 +60,28 @@ export function SmallCard({ news }: { news: News }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full gap-3 rounded-sm bg-white p-3.5 text-left shadow-sm ring-1 ring-zinc-100 transition-colors hover:bg-zinc-50"
+        className="flex w-full gap-3 rounded-sm bg-white text-left shadow-sm ring-1 ring-zinc-100 transition-colors hover:bg-zinc-50"
       >
         {news.bannerUrl ? (
           <img
             src={news.bannerUrl}
             alt={news.judul}
-            className="size-16 shrink-0 rounded-sm object-cover"
+            className="size-24 shrink-0 rounded-l-sm object-cover"
           />
         ) : (
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-blue-100 to-indigo-100">
+          <div className="flex size-24 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-blue-100 to-indigo-100">
             <NewspaperIcon className="size-6 text-blue-300" />
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-          <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900">
-            {news.judul}
-          </h3>
-          <p className="line-clamp-1 text-[11px] text-zinc-400">
-            {stripHtml(news.konten)}
-          </p>
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+          <div>
+            <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900">
+              {news.judul}
+            </h3>
+            <p className="line-clamp-1 text-[11px] text-zinc-400">
+              {stripHtml(news.konten)}
+            </p>
+          </div>
           <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
             <span>{news.penulis.nama}</span>
             <span>·</span>
@@ -121,7 +111,7 @@ function NewsDetailSheet({
           onClick={onClose}
           className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
         >
-          <ChevronLeft />
+          <ChevronLeft size={16} />
         </button>
         <span className="truncate text-sm font-semibold text-zinc-800">
           {news.judul}

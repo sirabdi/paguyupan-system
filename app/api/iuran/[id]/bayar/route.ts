@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-// PATCH /api/iuran/:id/bayar — tandai LUNAS, hanya Admin
+// PATCH /api/iuran/:id/bayar — tandai LUNAS, Admin atau Bendahara
 export async function PATCH(_req: Request, { params }: RouteContext) {
-  const auth = await requireAdmin();
+  const auth = await requireRole("ADMIN", "BENDAHARA");
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -21,6 +21,29 @@ export async function PATCH(_req: Request, { params }: RouteContext) {
       where: { id: iuranId },
       data: { status: "LUNAS", tanggalBayar: new Date() },
     });
+
+    const periodeLabel = new Date(iuran.periode + "-01").toLocaleDateString("id-ID", {
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Jakarta",
+    });
+    const jumlahRupiah = new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(Number(iuran.jumlah));
+
+    await prisma.notifikasi.createMany({
+      data: [{
+        anggotaId: iuran.anggotaId,
+        tipe: "IURAN_LUNAS" as const,
+        judul: "Pembayaran Iuran Dikonfirmasi",
+        pesan: `Pembayaran iuran bulan ${periodeLabel} sebesar ${jumlahRupiah} telah dikonfirmasi. Terima kasih.`,
+        referensiId: iuran.id,
+      }],
+      skipDuplicates: true,
+    });
+
     return NextResponse.json(iuran);
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {

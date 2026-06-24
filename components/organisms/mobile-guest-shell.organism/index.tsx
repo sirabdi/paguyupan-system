@@ -11,12 +11,21 @@ import { BottomNav } from "./bottom-nav";
 
 type Tab = "home" | "news" | "profile";
 
+export type ProfileData = {
+  nama: string;
+  email: string;
+  alamat: string | null;
+  noTelp: string | null;
+  tanggalGabung: string | null;
+};
+
 type Props = {
   firstName: string;
   role: string;
+  profile: ProfileData;
 };
 
-export function MobileGuestShell({ firstName, role }: Props) {
+export function MobileGuestShell({ firstName, role, profile }: Props) {
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
 
@@ -47,6 +56,7 @@ export function MobileGuestShell({ firstName, role }: Props) {
       {tab === "home" && (
         <HomeTab
           firstName={firstName}
+          role={role}
           isPending={isPending}
           isError={isError}
           filtered={filtered}
@@ -57,11 +67,11 @@ export function MobileGuestShell({ firstName, role }: Props) {
         />
       )}
 
-      {tab === "news" && <NewsTab />}
+      {tab === "news" && <NewsTab role={role} />}
 
-      {tab === "profile" && <ProfileTab firstName={firstName} role={role} />}
+      {tab === "profile" && <ProfileTab role={role} profile={profile} />}
 
-      <BottomNav active={tab} role={role} onChange={setTab} />
+      <BottomNav active={tab} onChange={setTab} />
     </div>
   );
 }

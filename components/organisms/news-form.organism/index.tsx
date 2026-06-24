@@ -7,6 +7,7 @@ import { Loader2Icon, UploadIcon, XIcon, ArrowLeftIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button, Input, Label, RichTextEditor } from "@/components/atoms";
+import { stripHtml } from "@/utils";
 
 import {
   NEWS_KEY,
@@ -99,7 +100,7 @@ export function NewsForm({ news }: { news?: News }) {
       toast.error("Judul wajib diisi");
       return;
     }
-    if (!form.konten.replace(/<[^>]*>/g, "").trim()) {
+    if (!stripHtml(form.konten)) {
       toast.error("Konten wajib diisi");
       return;
     }

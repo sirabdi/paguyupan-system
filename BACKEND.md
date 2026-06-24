@@ -48,28 +48,17 @@ prisma.config.ts            # konfigurasi Prisma (load .env via dotenv)
    npm run db:migrate
    ```
 
-3. **Buat akun Admin pertama** (jalankan sekali via Prisma Studio atau script):
+3. **Seed data awal** (akun Admin + beberapa anggota contoh):
 
    ```bash
-   # Contoh via Prisma Studio
-   npm run db:studio
+   npm run db:seed
    ```
 
-   Atau pakai script one-off:
+   Menjalankan `prisma/seed.ts` via `tsx`. Memakai `upsert` berdasarkan `email`,
+   jadi **aman dijalankan berulang** tanpa membuat duplikat.
 
-   ```ts
-   import { PrismaClient } from "@/generated/prisma/client";
-   import bcrypt from "bcryptjs";
-   const prisma = new PrismaClient();
-   await prisma.anggota.create({
-     data: {
-       nama: "Admin",
-       email: "admin@paguyupan.id",
-       passwordHash: await bcrypt.hash("password123", 12),
-       role: "ADMIN",
-     },
-   });
-   ```
+   Akun hasil seed (lihat `prisma/seed.ts` untuk daftar lengkap), mis. Admin:
+   `abdi@paguyupan.id`.
 
 4. **Jalankan dev server:**
 
@@ -185,6 +174,7 @@ Endpoint `/api/cron/iuran-bulanan` proteksi via header `Authorization: Bearer <C
 | `npm run db:push`     | Sinkronkan schema tanpa migrasi (prototyping) |
 | `npm run db:generate` | Generate ulang Prisma Client                  |
 | `npm run db:studio`   | Buka Prisma Studio (GUI database)             |
+| `npm run db:seed`     | Isi data awal (`prisma/seed.ts`, idempotent)  |
 
 ## Catatan
 

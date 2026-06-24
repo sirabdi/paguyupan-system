@@ -58,20 +58,12 @@ import {
 } from "@/modules";
 import { STATUS_LABEL, type Anggota } from "@/modules/anggota.module/types";
 import { AnggotaFormDialog } from "@/components/molecules";
+import { formatDate } from "@/utils";
 
 const FILTER_LABEL: Record<StatusFilter, string> = {
   ALL: "Semua status",
   ...STATUS_LABEL,
 };
-
-const tanggalFormatter = new Intl.DateTimeFormat("id-ID", {
-  dateStyle: "medium",
-});
-
-function formatTanggal(iso: string) {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "—" : tanggalFormatter.format(d);
-}
 
 // Menunda pembaruan nilai sampai pengguna berhenti mengetik.
 function useDebounced<T>(value: T, delay: number): T {
@@ -195,7 +187,7 @@ export function AnggotaTable() {
                 <TableHead className="hidden lg:table-cell">
                   Bergabung
                 </TableHead>
-                <TableHead className="w-12 text-right">Aksi</TableHead>
+                <TableHead className="w-24 text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -271,9 +263,9 @@ export function AnggotaTable() {
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {formatTanggal(a.tanggalGabung)}
+                      {formatDate(a.tanggalGabung)}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={<Button variant="ghost" size="icon-sm" />}

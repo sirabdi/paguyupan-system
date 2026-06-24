@@ -42,6 +42,35 @@ export async function GET(req: Request) {
     skipDuplicates: true,
   });
 
+  // Buat notifikasi untuk setiap anggota yang punya tagihan periode ini
+  // (query ulang untuk dapat id-nya, skipDuplicates agar aman dipanggil berulang)
+  const periodeLabel = new Date(periode + "-01").toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  });
+  const jumlahRupiah = new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(jumlah));
+
+  const iuranPeriodeIni = await prisma.iuran.findMany({
+    where: { anggotaId: { in: anggotaAktif.map((a) => a.id) }, periode },
+    select: { id: true, anggotaId: true },
+  });
+
+  await prisma.notifikasi.createMany({
+    data: iuranPeriodeIni.map((i) => ({
+      anggotaId: i.anggotaId,
+      tipe: "IURAN_TAGIHAN" as const,
+      judul: `Tagihan Iuran ${periodeLabel}`,
+      pesan: `Tagihan iuran bulan ${periodeLabel} sebesar ${jumlahRupiah} telah diterbitkan. Segera lakukan pembayaran.`,
+      referensiId: i.id,
+    })),
+    skipDuplicates: true,
+  });
+
   return NextResponse.json({
     ok: true,
     periode,

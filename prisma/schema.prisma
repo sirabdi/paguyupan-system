@@ -26,8 +26,9 @@ model Anggota {
   status        StatusAnggota @default(AKTIF)
   tanggalGabung DateTime      @default(now()) @map("tanggal_gabung")
 
-  iuran     Iuran[]
-  news      News[]
+  iuran        Iuran[]
+  news         News[]
+  notifikasi   Notifikasi[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -85,4 +86,26 @@ enum StatusAnggota {
 enum StatusIuran {
   BELUM_BAYAR
   LUNAS
+}
+
+model Notifikasi {
+  id          Int       @id @default(autoincrement())
+  anggota     Anggota   @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId   Int       @map("anggota_id")
+  tipe        TipeNotif
+  judul       String
+  pesan       String    @db.Text
+  dibaca      Boolean   @default(false)
+  referensiId Int       @map("referensi_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([anggotaId, tipe, referensiId])
+  @@index([anggotaId, dibaca])
+  @@map("notifikasi")
+}
+
+enum TipeNotif {
+  IURAN_TAGIHAN
+  IURAN_LUNAS
 }
