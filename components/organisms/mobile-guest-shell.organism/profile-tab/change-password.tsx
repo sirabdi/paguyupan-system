@@ -15,7 +15,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-type Step = "idle" | "sending" | "otp" | "verifying" | "form" | "saving" | "done";
+type Step =
+  | "idle"
+  | "sending"
+  | "otp"
+  | "verifying"
+  | "form"
+  | "saving"
+  | "done";
 
 const OtpSchema = z.object({
   code: z.string().length(6, "Harus 6 digit").regex(/^\d+$/, "Hanya angka"),
@@ -58,9 +65,12 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
   });
 
   const passForm = useForm<PasswordDTO>({
-    mode: "onTouched",
+    mode: "onChange",
     resolver: zodResolver(PasswordSchema),
   });
+
+  const passwordVal = passForm.watch("password") ?? "";
+  const confirmVal = passForm.watch("confirmPassword") ?? "";
 
   const neverChanged = !passwordChangedAt;
 
@@ -105,7 +115,9 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
       onChanged();
       setTimeout(() => setStep("idle"), 2000);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal mengubah password");
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengubah password",
+      );
       setStep("form");
     }
   }
@@ -194,7 +206,9 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
             </p>
           )}
           {cooldown > 0 ? (
-            <p className="mt-1.5 text-xs text-zinc-400">Kirim ulang dalam {cooldown}s</p>
+            <p className="mt-1.5 text-xs text-zinc-400">
+              Kirim ulang dalam {cooldown}s
+            </p>
           ) : (
             <button
               type="button"
@@ -209,8 +223,13 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
 
       {/* Step form password baru */}
       {(step === "form" || step === "saving") && (
-        <form onSubmit={passForm.handleSubmit(submitPassword)} className="px-4 py-3">
-          <p className="mb-3 text-xs font-medium text-zinc-600">Password Baru</p>
+        <form
+          onSubmit={passForm.handleSubmit(submitPassword)}
+          className="px-4 py-3"
+        >
+          <p className="mb-3 text-xs font-medium text-zinc-600">
+            Password Baru
+          </p>
           <div className="grid gap-3">
             <div className="grid gap-1">
               <div className="relative">
@@ -220,7 +239,9 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
                   autoComplete="new-password"
                   className="h-9 w-full rounded-sm border border-zinc-200 bg-white px-3 pr-10 text-sm text-zinc-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   disabled={step === "saving"}
-                  {...passForm.register("password")}
+                  {...passForm.register("password", {
+                    onChange: () => passForm.trigger("confirmPassword"),
+                  })}
                 />
                 <button
                   type="button"
@@ -228,11 +249,17 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
                   tabIndex={-1}
                 >
-                  {showPass ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  {showPass ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
                 </button>
               </div>
-              {passForm.formState.errors.password && (
-                <p className="text-xs text-red-500">{passForm.formState.errors.password.message}</p>
+              {passForm.formState.errors.password && passwordVal.length > 0 && (
+                <p className="text-xs text-red-500">
+                  {passForm.formState.errors.password.message}
+                </p>
               )}
             </div>
 
@@ -252,18 +279,24 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
                   tabIndex={-1}
                 >
-                  {showConfirm ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  {showConfirm ? (
+                    <EyeOffIcon className="size-4" />
+                  ) : (
+                    <EyeIcon className="size-4" />
+                  )}
                 </button>
               </div>
-              {passForm.formState.errors.confirmPassword && (
-                <p className="text-xs text-red-500">{passForm.formState.errors.confirmPassword.message}</p>
+              {passForm.formState.errors.confirmPassword && passwordVal.length > 0 && confirmVal.length > 0 && (
+                <p className="text-xs text-red-500">
+                  {passForm.formState.errors.confirmPassword.message}
+                </p>
               )}
             </div>
 
             <div className="flex gap-2">
               <button
                 type="submit"
-                disabled={!passForm.formState.isValid || step === "saving"}
+                disabled={!passForm.formState.isValid || step === "saving" || !passwordVal || !confirmVal}
                 className="flex-1 rounded-sm bg-blue-600 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
               >
                 {step === "saving" ? (
@@ -290,7 +323,9 @@ export function ChangePasswordRow({ passwordChangedAt, onChanged }: Props) {
       {step === "done" && (
         <div className="flex items-center gap-3 px-4 py-3.5">
           <CheckCircle2Icon className="size-5 text-emerald-500" />
-          <p className="text-sm font-medium text-emerald-700">Password berhasil diubah</p>
+          <p className="text-sm font-medium text-emerald-700">
+            Password berhasil diubah
+          </p>
         </div>
       )}
     </div>
