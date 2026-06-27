@@ -16,23 +16,40 @@ datasource db {
 // ============================================================
 
 model Anggota {
-  id            Int           @id @default(autoincrement())
-  nama          String
-  alamat        String?       @db.Text
-  noTelp        String?       @map("no_telp")
-  email         String        @unique
-  passwordHash  String        @map("password_hash")
-  role          Role          @default(ANGGOTA)
-  status        StatusAnggota @default(AKTIF)
-  tanggalGabung DateTime      @default(now()) @map("tanggal_gabung")
+  id                  Int           @id @default(autoincrement())
+  nama                String
+  alamat              String?       @db.Text
+  noTelp              String?       @map("no_telp")
+  email               String        @unique
+  emailVerifiedAt     DateTime?     @map("email_verified_at")
+  passwordHash        String        @map("password_hash")
+  passwordChangedAt   DateTime?     @map("password_changed_at")
+  role                Role          @default(ANGGOTA)
+  status              StatusAnggota @default(AKTIF)
+  tanggalGabung       DateTime      @default(now()) @map("tanggal_gabung")
 
   iuran        Iuran[]
   news         News[]
   notifikasi   Notifikasi[]
+  otpCodes     OtpCode[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("anggota")
+}
+
+model OtpCode {
+  id        Int      @id @default(autoincrement())
+  anggota   Anggota  @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int      @map("anggota_id")
+  codeHash  String   @map("code_hash")
+  purpose   String   @default("verify_email")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([anggotaId, purpose])
+  @@map("otp_code")
 }
 
 model News {
