@@ -3,27 +3,14 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Controller } from "react-hook-form";
 import { Loader2Icon, UploadIcon, XIcon, ArrowLeftIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button, Input, Label, RichTextEditor } from "@/components/atoms";
+import { NEWS_KEY, createNews, updateNews, type News } from "@/modules";
+import { useNewsForm } from "@/modules/news.module/news.form";
 import { stripHtml } from "@/utils";
-
-import {
-  NEWS_KEY,
-  createNews,
-  updateNews,
-  type News,
-  type NewsInput,
-} from "@/modules";
-
-type FormState = { judul: string; konten: string; bannerUrl: string | null };
-
-const EMPTY: FormState = { judul: "", konten: "", bannerUrl: null };
-
-function toFormState(news: News): FormState {
-  return { judul: news.judul, konten: news.konten, bannerUrl: news.bannerUrl };
-}
 
 const ALLOWED_TYPES = [
   "image/jpeg",
@@ -51,15 +38,25 @@ export function NewsForm({ news }: { news?: News }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const bannerInputRef = React.useRef<HTMLInputElement>(null);
-
-  const [form, setForm] = React.useState<FormState>(() =>
-    news ? toFormState(news) : EMPTY,
-  );
   const [bannerUploading, setBannerUploading] = React.useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors, isValid },
+  } = useNewsForm(news);
+
+  const bannerUrl = watch("bannerUrl");
+
   const mutation = useMutation({
-    mutationFn: (input: NewsInput) =>
-      isEdit ? updateNews(news!.id, input) : createNews(input),
+    mutationFn: (input: {
+      judul: string;
+      konten: string;
+      bannerUrl?: string | null;
+    }) => (isEdit ? updateNews(news!.id, input) : createNews(input)),
     onSuccess: (saved) => {
       toast.success(
         isEdit ? "Berita diperbarui" : `Berita "${saved.judul}" dipublikasikan`,
@@ -85,7 +82,7 @@ export function NewsForm({ news }: { news?: News }) {
     setBannerUploading(true);
     try {
       const url = await uploadBanner(file);
-      setForm((f) => ({ ...f, bannerUrl: url }));
+      setValue("bannerUrl", url);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal upload banner");
     } finally {
@@ -93,26 +90,17 @@ export function NewsForm({ news }: { news?: News }) {
     }
   }
 
-  function handleSubmit(e: React.SyntheticEvent) {
-    e.preventDefault();
-    const judul = form.judul.trim();
-    if (!judul) {
-      toast.error("Judul wajib diisi");
-      return;
-    }
-    if (!stripHtml(form.konten)) {
-      toast.error("Konten wajib diisi");
-      return;
-    }
-    mutation.mutate({
-      judul,
-      konten: form.konten.trim(),
-      bannerUrl: form.bannerUrl,
-    });
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="grid gap-8">
+    <form
+      onSubmit={handleSubmit((data) => {
+        if (!stripHtml(data.konten)) {
+          toast.error("Konten wajib diisi");
+          return;
+        }
+        mutation.mutate(data);
+      })}
+      className="grid gap-8"
+    >
       {/* Kembali */}
       <div>
         <Button
@@ -127,123 +115,138 @@ export function NewsForm({ news }: { news?: News }) {
         </Button>
       </div>
 
-      {/* Judul */}
-      <div className="grid gap-2">
-        <Label htmlFor="judul" className="text-base font-medium">
-          Judul <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="judul"
-          value={form.judul}
-          onChange={(e) => setForm((f) => ({ ...f, judul: e.target.value }))}
-          placeholder="Judul berita"
-          className="h-10 text-base"
-          autoFocus
-          required
-        />
-      </div>
+      <div className="grid gap-4">
+        {/* Judul */}
+        <div className="grid gap-1">
+          <Label htmlFor="judul" className="text-sm font-medium">
+            Judul <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="judul"
+            placeholder="Judul berita"
+            className="h-10 text-sm"
+            autoFocus
+            {...register("judul")}
+          />
+          {errors.judul && (
+            <p className="text-xs text-destructive">{errors.judul.message}</p>
+          )}
+        </div>
 
-      {/* Banner */}
-      <div className="grid gap-2">
-        <Label className="text-base font-medium">
-          Banner Image
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
-            Opsional · maks. 5 MB
-          </span>
-        </Label>
-
-        {form.bannerUrl ? (
-          <div className="relative overflow-hidden rounded-xl border bg-muted">
-            <div className="h-64 w-full sm:h-80">
-              <img
-                src={form.bannerUrl}
-                alt="Banner preview"
-                className="h-full w-full object-cover"
-              />
-            </div>
-            <div className="absolute top-3 right-3 flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => bannerInputRef.current?.click()}
-                disabled={bannerUploading}
-                className="bg-background/80 backdrop-blur"
-              >
-                {bannerUploading ? (
-                  <Loader2Icon className="animate-spin" />
-                ) : (
-                  <UploadIcon />
-                )}
-                Ganti
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon-sm"
-                onClick={() => setForm((f) => ({ ...f, bannerUrl: null }))}
-                aria-label="Hapus banner"
-                className="bg-destructive/80 text-white backdrop-blur"
-              >
-                <XIcon />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => bannerInputRef.current?.click()}
-            disabled={bannerUploading}
-            className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50 sm:h-56"
-          >
-            {bannerUploading ? (
-              <Loader2Icon className="size-7 animate-spin" />
-            ) : (
-              <UploadIcon className="size-7" />
-            )}
-            <span className="text-sm font-medium">
-              {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
+        {/* Banner */}
+        <div className="grid gap-1">
+          <Label className="text-sm font-medium">
+            Banner Image
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              Opsional · maks. 5 MB
             </span>
-            <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
-          </button>
-        )}
+          </Label>
 
-        <input
-          ref={bannerInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleBannerChange}
-        />
-      </div>
+          {bannerUrl ? (
+            <div className="relative overflow-hidden rounded-xl border bg-muted">
+              <div className="h-64 w-full sm:h-80">
+                <img
+                  src={bannerUrl}
+                  alt="Banner preview"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <div className="absolute top-3 right-3 flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={bannerUploading}
+                  className="bg-background/80 backdrop-blur"
+                >
+                  {bannerUploading ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : (
+                    <UploadIcon />
+                  )}
+                  Ganti
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-sm"
+                  onClick={() => setValue("bannerUrl", null)}
+                  aria-label="Hapus banner"
+                  className="bg-destructive/80 text-white backdrop-blur"
+                >
+                  <XIcon />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => bannerInputRef.current?.click()}
+              disabled={bannerUploading}
+              className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50 sm:h-56"
+            >
+              {bannerUploading ? (
+                <Loader2Icon className="size-7 animate-spin" />
+              ) : (
+                <UploadIcon className="size-7" />
+              )}
+              <span className="text-sm font-medium">
+                {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
+              </span>
+              <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
+            </button>
+          )}
 
-      {/* Konten editor */}
-      <div className="grid gap-2">
-        <Label className="text-base font-medium">
-          Konten <span className="text-destructive">*</span>
-        </Label>
-        <RichTextEditor
-          value={form.konten}
-          onChange={(html) => setForm((f) => ({ ...f, konten: html }))}
-          placeholder="Tulis isi berita di sini…"
-          className="min-h-[360px]"
-        />
-      </div>
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleBannerChange}
+          />
+        </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-end gap-3 border-t pt-6">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push("/news")}
-          disabled={saving || bannerUploading}
-        >
-          Batal
-        </Button>
-        <Button type="submit" disabled={saving || bannerUploading}>
-          {saving && <Loader2Icon className="animate-spin" />}
-          {isEdit ? "Simpan Perubahan" : "Publikasikan"}
-        </Button>
+        {/* Konten */}
+        <div className="grid gap-1">
+          <Label className="text-sm font-medium">
+            Konten <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            control={control}
+            name="konten"
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Tulis isi berita di sini…"
+                className="min-h-[360px]"
+              />
+            )}
+          />
+          {errors.konten && (
+            <p className="text-xs text-destructive">{errors.konten.message}</p>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 border-t pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/news")}
+            disabled={saving || bannerUploading}
+          >
+            Batal
+          </Button>
+          <Button
+            type="submit"
+            disabled={saving || bannerUploading || !isValid}
+          >
+            {saving && <Loader2Icon className="animate-spin" />}
+            {isEdit ? "Simpan Perubahan" : "Publikasikan"}
+          </Button>
+        </div>
       </div>
     </form>
   );
