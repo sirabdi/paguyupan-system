@@ -56,6 +56,8 @@ import {
   fetchAnggota,
   type StatusFilter,
 } from "@/modules";
+import { fetchMe, ME_KEY } from "@/modules/auth.module";
+
 import { STATUS_LABEL, type Anggota } from "@/modules/anggota.module/types";
 import { AnggotaFormDialog } from "@/components/molecules";
 import { formatDate } from "@/utils";
@@ -86,6 +88,8 @@ export function AnggotaTable() {
   const [editing, setEditing] = React.useState<Anggota | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Anggota | null>(null);
 
+  const { data: me } = useQuery({ queryKey: ME_KEY, queryFn: fetchMe });
+
   const filter = { q: debouncedQ, status };
   const {
     data = [],
@@ -96,7 +100,7 @@ export function AnggotaTable() {
   } = useQuery({
     queryKey: [...ANGGOTA_KEY, filter],
     queryFn: () => fetchAnggota(filter),
-    placeholderData: (prev) => prev, // pertahankan baris lama saat filter berubah
+    placeholderData: (prev) => prev,
   });
 
   const deleteMutation = useMutation({
@@ -301,6 +305,7 @@ export function AnggotaTable() {
         open={formOpen}
         onOpenChange={setFormOpen}
         anggota={editing}
+        currentUserId={me?.id}
       />
 
       {/* Konfirmasi hapus */}
