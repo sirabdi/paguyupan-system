@@ -53,7 +53,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   const { nama, alamat, noTelp, email, status, role, password } =
     (body ?? {}) as Record<string, unknown>;
 
-  const validRoles = ["ADMIN", "BENDAHARA", "ANGGOTA"] as const;
+  const validRoles = ["ADMIN", "SEKERTARIS", "BENDAHARA", "ANGGOTA"] as const;
 
   let passwordHash: string | undefined;
   if (typeof password === "string") {

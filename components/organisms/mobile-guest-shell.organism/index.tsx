@@ -15,6 +15,7 @@ type Tab = "home" | "news" | "iuran" | "profile";
 export type ProfileData = {
   nama: string;
   email: string;
+  emailVerifiedAt: string | null;
   alamat: string | null;
   noTelp: string | null;
   tanggalGabung: string | null;

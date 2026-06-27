@@ -14,7 +14,7 @@ export default async function GuestPage() {
 
   const anggota = await prisma.anggota.findUnique({
     where: { id: session.anggotaId },
-    select: { nama: true, email: true, alamat: true, noTelp: true, tanggalGabung: true },
+    select: { nama: true, email: true, emailVerifiedAt: true, alamat: true, noTelp: true, tanggalGabung: true },
   });
 
   const iuran = await prisma.iuran.findMany({
@@ -33,6 +33,7 @@ export default async function GuestPage() {
         profile={{
           nama: anggota?.nama ?? "-",
           email: anggota?.email ?? "-",
+          emailVerifiedAt: anggota?.emailVerifiedAt?.toISOString() ?? null,
           alamat: anggota?.alamat ?? null,
           noTelp: anggota?.noTelp ?? null,
           tanggalGabung: anggota?.tanggalGabung?.toISOString() ?? null,
