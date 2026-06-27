@@ -10,6 +10,7 @@ import {
   PhoneIcon,
   CalendarIcon,
   ShieldIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 
 import { logout } from "@/modules";
@@ -44,6 +45,65 @@ type DetailRowProps = {
   value: string | null;
 };
 
+function AccountVerifiedBadge({
+  emailVerified,
+  passwordChanged,
+}: {
+  emailVerified: boolean;
+  passwordChanged: boolean;
+}) {
+  const points = [emailVerified, passwordChanged].filter(Boolean).length;
+  const pct = points * 50;
+  const fully = pct === 100;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      {fully ? (
+        <div className="flex items-center gap-1.5">
+          <ShieldCheckIcon className="size-3.5 text-emerald-500" />
+          <span className="text-xs font-semibold text-emerald-700">
+            Verified Account
+          </span>
+        </div>
+      ) : (
+        <span className="text-xs font-semibold text-amber-700">
+          {pct}% Account Verified
+        </span>
+      )}
+
+      <div className="flex flex-col items-center gap-0.5">
+        {/* Progress bar */}
+        <div className="flex w-64 gap-1">
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors duration-500 ${emailVerified ? "bg-emerald-400" : "bg-zinc-200"}`}
+          />
+          <div
+            className={`h-1 flex-1 rounded-full transition-colors duration-500 ${passwordChanged ? "bg-emerald-400" : "bg-zinc-200"}`}
+          />
+        </div>
+
+        {/* Checklist breakdown */}
+        <div className="flex w-64 gap-1">
+          <div className="flex justify-center w-32 gap-1">
+            <p
+              className={`text-[10px] ${emailVerified ? "text-emerald-600" : "text-zinc-400"}`}
+            >
+              Email
+            </p>
+          </div>
+          <div className="flex justify-center w-32 gap-1">
+            <p
+              className={`text-[10px] ${passwordChanged ? "text-emerald-600" : "text-zinc-400"}`}
+            >
+              Password
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DetailRow({ icon, label, value }: DetailRowProps) {
   return (
     <div className="flex items-start gap-3 px-4 py-3">
@@ -77,16 +137,17 @@ export function ProfileTab({ role, profile }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white px-5 pb-6 pt-6">
-        <div className="mt-2 flex flex-col items-center gap-3">
+      <div className="bg-white p-5">
+        <div className="flex flex-col items-center gap-3">
           <div className="flex size-16 items-center justify-center rounded-full bg-blue-100">
             <UserIcon className="size-8 text-blue-600" />
           </div>
-          <div className="text-center">
+          <div className="flex flex-col items-center gap-2">
             <p className="text-lg font-bold text-zinc-900">{profile.nama}</p>
-            <span className="rounded-sm bg-zinc-100 px-3 py-0.5 text-xs font-medium text-zinc-600">
-              {ROLE_LABEL[role] ?? role}
-            </span>
+            <AccountVerifiedBadge
+              emailVerified={emailVerified}
+              passwordChanged={Boolean(passwordChangedAt)}
+            />
           </div>
         </div>
       </div>
