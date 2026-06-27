@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import {
+  AlertCircleIcon,
   CheckCircle2Icon,
   MailIcon,
-  ShieldCheckIcon,
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,8 +74,8 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
     <div className="divide-y divide-zinc-100">
       {!isVerified && (
         <div className="px-4 py-1 bg-amber-50 text-amber-600">
-          <p className="text-xs flex items-center gap-1 font-bold">
-            <ShieldCheckIcon className="size-4" />
+          <p className="text-xs flex items-center gap-1">
+            <AlertCircleIcon className="size-3.5 shrink-0 text-amber-500" />
             Email belum terverifikasi!
           </p>
         </div>
@@ -131,7 +131,10 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => { setStep("idle"); setCode(""); }}
+              onClick={() => {
+                setStep("idle");
+                setCode("");
+              }}
               className="flex shrink-0 items-center justify-center rounded-sm border border-zinc-200 px-3 py-2 text-zinc-400 hover:text-zinc-600"
             >
               <XIcon className="size-4" />
