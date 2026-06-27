@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   UserIcon,
@@ -7,13 +8,13 @@ import {
   ChevronRightIcon,
   MapPinIcon,
   PhoneIcon,
-  MailIcon,
   CalendarIcon,
   ShieldIcon,
 } from "lucide-react";
 
 import { logout } from "@/modules";
 import type { ProfileData } from "../index";
+import { EmailVerifyRow } from "./email-verify";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin",
@@ -60,6 +61,9 @@ function DetailRow({ icon, label, value }: DetailRowProps) {
 
 export function ProfileTab({ role, profile }: Props) {
   const router = useRouter();
+  const [emailVerified, setEmailVerified] = React.useState(
+    Boolean(profile.emailVerifiedAt),
+  );
 
   async function handleLogout() {
     await logout();
@@ -96,10 +100,10 @@ export function ProfileTab({ role, profile }: Props) {
                 label="Nama Lengkap"
                 value={profile.nama}
               />
-              <DetailRow
-                icon={<MailIcon className="size-4 text-zinc-500" />}
-                label="Email"
-                value={profile.email}
+              <EmailVerifyRow
+                email={profile.email}
+                verified={emailVerified}
+                onVerified={() => setEmailVerified(true)}
               />
               <DetailRow
                 icon={<PhoneIcon className="size-4 text-zinc-500" />}
