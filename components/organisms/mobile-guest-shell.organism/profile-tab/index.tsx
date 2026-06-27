@@ -15,6 +15,7 @@ import {
 import { logout } from "@/modules";
 import type { ProfileData } from "../index";
 import { EmailVerifyRow } from "./email-verify";
+import { ChangePasswordRow } from "./change-password";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin",
@@ -63,6 +64,9 @@ export function ProfileTab({ role, profile }: Props) {
   const router = useRouter();
   const [emailVerified, setEmailVerified] = React.useState(
     Boolean(profile.emailVerifiedAt),
+  );
+  const [passwordChangedAt, setPasswordChangedAt] = React.useState(
+    profile.passwordChangedAt,
   );
 
   async function handleLogout() {
@@ -133,19 +137,25 @@ export function ProfileTab({ role, profile }: Props) {
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Aksi
             </p>
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 rounded-sm bg-white px-4 py-3.5 text-left shadow-sm ring-1 ring-zinc-100 transition-colors hover:bg-red-50"
-            >
-              <div className="flex size-9 items-center justify-center rounded-full bg-red-100">
-                <LogOutIcon className="size-4 text-red-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-zinc-900">Keluar</p>
-                <p className="text-xs text-zinc-400">Akhiri sesi ini</p>
-              </div>
-              <ChevronRightIcon className="size-4 text-zinc-300" />
-            </button>
+            <div className="overflow-hidden rounded-sm bg-white shadow-sm ring-1 ring-zinc-100 divide-y divide-zinc-100">
+              <ChangePasswordRow
+                passwordChangedAt={passwordChangedAt}
+                onChanged={() => setPasswordChangedAt(new Date().toISOString())}
+              />
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-red-50"
+              >
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <LogOutIcon className="size-4 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-zinc-900">Keluar</p>
+                  <p className="text-xs text-zinc-400">Akhiri sesi ini</p>
+                </div>
+                <ChevronRightIcon className="size-4 text-zinc-300" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

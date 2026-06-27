@@ -13,9 +13,7 @@ export function generateOtp(): string {
   return String(randomInt(100000, 999999));
 }
 
-/** Hapus OTP lama, cek rate limit, simpan OTP baru. Return kode plaintext. */
 export async function createOtp(anggotaId: number, purpose: string): Promise<string> {
-  // Rate limit: tolak jika OTP terbaru dibuat < 60 detik yang lalu
   const recent = await prisma.otpCode.findFirst({
     where: { anggotaId, purpose, used: false },
     orderBy: { createdAt: "desc" },
@@ -28,7 +26,6 @@ export async function createOtp(anggotaId: number, purpose: string): Promise<str
     }
   }
 
-  // Hapus semua OTP lama untuk anggota + purpose ini
   await prisma.otpCode.deleteMany({ where: { anggotaId, purpose } });
 
   const code = generateOtp();
@@ -41,7 +38,6 @@ export async function createOtp(anggotaId: number, purpose: string): Promise<str
   return code;
 }
 
-/** Verifikasi OTP. Throw jika salah/expired/sudah dipakai. */
 export async function verifyOtp(anggotaId: number, purpose: string, code: string): Promise<void> {
   const record = await prisma.otpCode.findFirst({
     where: { anggotaId, purpose, used: false },

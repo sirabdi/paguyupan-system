@@ -22,7 +22,6 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
   const [code, setCode] = React.useState("");
   const [cooldown, setCooldown] = React.useState(0);
 
-  // Hitung mundur cooldown
   React.useEffect(() => {
     if (cooldown <= 0) return;
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
@@ -32,7 +31,11 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
   async function requestOtp() {
     setStep("sending");
     try {
-      const res = await fetch("/api/auth/request-otp", { method: "POST" });
+      const res = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "verify_email" }),
+      });
       const body = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(body.error ?? "Gagal mengirim OTP");
       setStep("input");
@@ -69,7 +72,6 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
 
   return (
     <div className="divide-y divide-zinc-100">
-      {/* Row email */}
       {!isVerified && (
         <div className="px-4 py-1 bg-amber-50 text-amber-600">
           <p className="text-xs flex items-center gap-1 font-bold">
@@ -86,7 +88,6 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
           <p className="text-xs text-zinc-400">Email</p>
           <p className="truncate text-sm font-medium text-zinc-800">{email}</p>
         </div>
-        {/* Badge verified / unverified */}
         {isVerified ? (
           <div className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
             <CheckCircle2Icon className="size-3" />
@@ -103,7 +104,6 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
         )}
       </div>
 
-      {/* Form OTP — hanya muncul saat step input/verifying */}
       {(step === "input" || step === "verifying") && (
         <form onSubmit={submitOtp} className="px-4 py-3">
           <p className="mb-2 text-xs text-zinc-500">
@@ -112,7 +112,6 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
           </p>
           <div className="flex gap-2">
             <input
-              autoFocus
               type="text"
               inputMode="numeric"
               pattern="\d{6}"
@@ -132,10 +131,7 @@ export function EmailVerifyRow({ email, verified, onVerified }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setStep("idle");
-                setCode("");
-              }}
+              onClick={() => { setStep("idle"); setCode(""); }}
               className="flex shrink-0 items-center justify-center rounded-sm border border-zinc-200 px-3 py-2 text-zinc-400 hover:text-zinc-600"
             >
               <XIcon className="size-4" />

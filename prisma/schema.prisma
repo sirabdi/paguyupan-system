@@ -16,16 +16,17 @@ datasource db {
 // ============================================================
 
 model Anggota {
-  id              Int           @id @default(autoincrement())
-  nama            String
-  alamat          String?       @db.Text
-  noTelp          String?       @map("no_telp")
-  email           String        @unique
-  emailVerifiedAt DateTime?     @map("email_verified_at")
-  passwordHash    String        @map("password_hash")
-  role            Role          @default(ANGGOTA)
-  status          StatusAnggota @default(AKTIF)
-  tanggalGabung   DateTime      @default(now()) @map("tanggal_gabung")
+  id                  Int           @id @default(autoincrement())
+  nama                String
+  alamat              String?       @db.Text
+  noTelp              String?       @map("no_telp")
+  email               String        @unique
+  emailVerifiedAt     DateTime?     @map("email_verified_at")
+  passwordHash        String        @map("password_hash")
+  passwordChangedAt   DateTime?     @map("password_changed_at")
+  role                Role          @default(ANGGOTA)
+  status              StatusAnggota @default(AKTIF)
+  tanggalGabung       DateTime      @default(now()) @map("tanggal_gabung")
 
   iuran        Iuran[]
   news         News[]

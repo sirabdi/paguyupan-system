@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const code = await createOtp(anggota.id, "reset_password");
     await sendOtpEmail(anggota.email, code);
   } catch {
-    // Abaikan error rate limit agar tidak mengekspos info
+    // Abaikan error rate limit
   }
 
   return NextResponse.json({ ok: true });

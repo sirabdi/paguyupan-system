@@ -16,6 +16,7 @@ export type ProfileData = {
   nama: string;
   email: string;
   emailVerifiedAt: string | null;
+  passwordChangedAt: string | null;
   alamat: string | null;
   noTelp: string | null;
   tanggalGabung: string | null;

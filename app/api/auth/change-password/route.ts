@@ -1,36 +1,29 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyOtp } from "@/lib/otp";
 
 export async function POST(req: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = (await req.json().catch(() => null)) as {
-    email?: string;
     code?: string;
     password?: string;
   } | null;
 
-  const email = body?.email?.trim().toLowerCase();
   const code = body?.code?.trim();
   const password = body?.password;
 
-  if (!email || !code || !password) {
+  if (!code || !password) {
     return NextResponse.json({ error: "Data tidak lengkap" }, { status: 400 });
   }
   if (password.length < 8) {
     return NextResponse.json({ error: "Password minimal 8 karakter" }, { status: 400 });
   }
 
-  const anggota = await prisma.anggota.findUnique({
-    where: { email },
-    select: { id: true },
-  });
-
-  if (!anggota) {
-    return NextResponse.json({ error: "Email tidak terdaftar" }, { status: 404 });
-  }
-
   try {
-    await verifyOtp(anggota.id, "reset_password", code);
+    await verifyOtp(auth.session.anggotaId, "change_password", code);
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Kode OTP tidak valid" },
@@ -42,7 +35,7 @@ export async function POST(req: Request) {
   const passwordHash = await hash(password, 12);
 
   await prisma.anggota.update({
-    where: { id: anggota.id },
+    where: { id: auth.session.anggotaId },
     data: { passwordHash, passwordChangedAt: new Date() },
   });
 

@@ -28,11 +28,16 @@ export function ResetStep({
   const {
     register,
     handleSubmit,
+    trigger,
+    watch,
     formState: { errors, isValid },
   } = useForm<ResetPasswordDTO>({
-    mode: "onTouched",
+    mode: "onChange",
     resolver: zodResolver(ResetPasswordSchema),
   });
+
+  const passwordVal = watch("password") ?? "";
+  const confirmVal = watch("confirmPassword") ?? "";
 
   const mutation = useMutation({
     mutationFn: async (data: ResetPasswordDTO) => {
@@ -62,7 +67,9 @@ export function ResetStep({
             type={showPass ? "text" : "password"}
             autoComplete="new-password"
             placeholder="Min. 8 karakter"
-            {...register("password")}
+            {...register("password", {
+              onChange: () => trigger("confirmPassword"),
+            })}
           />
           <button
             type="button"
@@ -73,7 +80,7 @@ export function ResetStep({
             {showPass ? <EyeOffIcon className="size-5" /> : <EyeIcon className="size-5" />}
           </button>
         </div>
-        {errors.password && (
+        {errors.password && passwordVal.length > 0 && (
           <p className="text-xs text-destructive">{errors.password.message}</p>
         )}
       </div>
@@ -99,7 +106,7 @@ export function ResetStep({
             {showConfirm ? <EyeOffIcon className="size-5" /> : <EyeIcon className="size-5" />}
           </button>
         </div>
-        {errors.confirmPassword && (
+        {errors.confirmPassword && passwordVal.length > 0 && confirmVal.length > 0 && (
           <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
         )}
       </div>
@@ -107,7 +114,7 @@ export function ResetStep({
       <Button
         type="submit"
         className="mt-2 h-10 w-full text-sm font-semibold"
-        disabled={mutation.isPending || !isValid}
+        disabled={mutation.isPending || !isValid || !passwordVal || !confirmVal}
       >
         {mutation.isPending && <Loader2Icon className="animate-spin" />}
         {mutation.isPending ? "Menyimpan…" : "Simpan Password Baru"}
