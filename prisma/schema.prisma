@@ -32,6 +32,7 @@ model Anggota {
   news         News[]
   notifikasi   Notifikasi[]
   otpCodes     OtpCode[]
+  sessions     UserSession[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -125,4 +126,27 @@ model Notifikasi {
 enum TipeNotif {
   IURAN_TAGIHAN
   IURAN_LUNAS
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  anggota   Anggota  @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int      @map("anggota_id")
+  expiresAt DateTime @map("expires_at")
+  kicked    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([anggotaId])
+  @@map("user_session")
+}
+
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  ip        String
+  email     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ip, createdAt])
+  @@index([email, createdAt])
+  @@map("login_attempt")
 }
