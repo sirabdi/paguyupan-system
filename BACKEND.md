@@ -15,6 +15,12 @@ app/
       route.ts              # GET (list), POST (create — Admin only)
       [id]/
         route.ts            # GET (detail), PUT (update — Admin), DELETE (Admin)
+    news/
+      route.ts              # GET (list, semua login), POST (Admin/Sekertaris)
+      [id]/
+        route.ts            # GET (detail), PUT/DELETE (Admin/Sekertaris)
+    upload/
+      route.ts              # POST — upload gambar, return { url } (Admin/Sekertaris)
     iuran/
       route.ts              # GET (list)
       [id]/
@@ -28,7 +34,7 @@ lib/
   session.ts                # encrypt/decrypt JWT (jose), create/get/delete cookie session
   auth.ts                   # requireAuth / requireRole / requireAdmin
 prisma/
-  schema.prisma             # definisi model (Anggota, Iuran)
+  schema.prisma             # definisi model (Anggota, News, Iuran)
 generated/prisma/           # Prisma Client hasil generate (gitignored)
 prisma.config.ts            # konfigurasi Prisma (load .env via dotenv)
 ```
@@ -60,7 +66,16 @@ prisma.config.ts            # konfigurasi Prisma (load .env via dotenv)
    Akun hasil seed (lihat `prisma/seed.ts` untuk daftar lengkap), mis. Admin:
    `abdi@paguyupan.id`.
 
-4. **Jalankan dev server:**
+4. **Generate Prisma Client** (wajib setelah install atau update dependency):
+
+   ```bash
+   npm run db:generate
+   ```
+
+   Jika terlewat, akan muncul error:
+   `@prisma/client did not initialize yet. Please run "prisma generate"`.
+
+5. **Jalankan dev server:**
 
    ```
    npm run dev
@@ -81,11 +96,12 @@ POST /api/auth/login  { email, password }
 
 ### Roles
 
-| Role       | Keterangan                              |
-| ---------- | --------------------------------------- |
-| `ADMIN`    | CRUD penuh semua data                   |
-| `BENDAHARA`| Bisa lihat data (read-only)             |
-| `ANGGOTA`  | Bisa lihat data (read-only)             |
+| Role         | Keterangan                                       |
+| ------------ | ------------------------------------------------ |
+| `ADMIN`      | CRUD penuh semua data + anggota                  |
+| `SEKERTARIS` | CRUD news, read-only data lain                   |
+| `BENDAHARA`  | Bisa lihat data (read-only)                      |
+| `ANGGOTA`    | Bisa lihat data (read-only)                      |
 
 ### Guard Helpers (`lib/auth.ts`)
 
@@ -124,6 +140,16 @@ export async function POST(req: Request) {
 | GET    | `/api/anggota/:id`               | Login  | Detail + riwayat iuran      |
 | PUT    | `/api/anggota/:id`               | Admin  | Update anggota / reset pw   |
 | DELETE | `/api/anggota/:id`               | Admin  | Hapus anggota               |
+
+### News
+
+| Method | Path             | Guard          | Fungsi                          |
+| ------ | ---------------- | -------------- | ------------------------------- |
+| GET    | `/api/news?q=`   | Login          | Daftar berita (semua role)      |
+| POST   | `/api/news`      | Admin/Sekertaris | Buat berita baru              |
+| GET    | `/api/news/:id`  | Login          | Detail berita                   |
+| PUT    | `/api/news/:id`  | Admin/Sekertaris | Update berita                 |
+| DELETE | `/api/news/:id`  | Admin/Sekertaris | Hapus berita                  |
 
 ### Iuran
 
@@ -182,3 +208,5 @@ Endpoint `/api/cron/iuran-bulanan` proteksi via header `Authorization: Bearer <C
 - Param dinamis route (`[id]`) di Next.js 16 berupa `Promise` — harus di-`await`.
 - `passwordHash` tidak pernah dikembalikan di response API (selalu di-`select` eksplisit tanpa field itu).
 - Session JWT expire 8 jam. Cookie `httpOnly` + `sameSite: lax`.
+- Upload gambar disimpan di `public/uploads/` dengan nama `<timestamp>-<randomHex>.<ext>`. Maks. 5 MB. Format: JPEG, PNG, WebP, GIF, AVIF.
+- Setelah `npm install` atau update versi Prisma, **wajib jalankan** `npm run db:generate` agar Prisma Client ter-generate ulang. Tanpa ini, server akan error: `@prisma/client did not initialize yet`.
