@@ -1,5 +1,7 @@
 -- AlterTable
-ALTER TABLE `anggota` ADD COLUMN `email_verified_at` DATETIME(3) NULL;
+ALTER TABLE `anggota`
+  ADD COLUMN `email_verified_at` DATETIME(3) NULL,
+  ADD COLUMN `password_changed_at` DATETIME(3) NULL;
 
 -- CreateTable
 CREATE TABLE `otp_code` (
