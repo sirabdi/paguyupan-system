@@ -27,6 +27,7 @@ export default async function NewsEditPage({ params }: PageProps) {
       judul: true,
       konten: true,
       bannerUrl: true,
+      kategori: true,
       createdAt: true,
       updatedAt: true,
       penulis: { select: { id: true, nama: true, role: true } },

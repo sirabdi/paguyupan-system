@@ -4,16 +4,25 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { InboxIcon } from "lucide-react";
 
-import { fetchNews, NEWS_KEY } from "@/modules";
+import { fetchNews, NEWS_KEY, KATEGORI_LABEL, type KategoriNews } from "@/modules";
 import { SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
 
+const FILTER_OPTIONS: { label: string; value: KategoriNews | "SEMUA" }[] = [
+  { label: "Semua", value: "SEMUA" },
+  { label: KATEGORI_LABEL.UNDANGAN, value: "UNDANGAN" },
+  { label: KATEGORI_LABEL.BERITA, value: "BERITA" },
+  { label: KATEGORI_LABEL.PENGUMUMAN, value: "PENGUMUMAN" },
+];
+
 export function NewsTab({ role }: { role: string }) {
+  const [q, setQ] = React.useState("");
+  const [kategori, setKategori] = React.useState<KategoriNews | "SEMUA">("SEMUA");
+
   const { data: allNews = [], isPending } = useQuery({
-    queryKey: NEWS_KEY,
-    queryFn: () => fetchNews(),
+    queryKey: [...NEWS_KEY, kategori],
+    queryFn: () => fetchNews(undefined, kategori === "SEMUA" ? undefined : kategori),
   });
 
-  const [q, setQ] = React.useState("");
   const filtered = q.trim()
     ? allNews.filter(
         (n) =>
@@ -41,16 +50,30 @@ export function NewsTab({ role }: { role: string }) {
           placeholder="Cari berita…"
           className="mt-4"
         />
+
+        {/* Filter kategori */}
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5">
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setKategori(opt.value)}
+              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                kategori === opt.value
+                  ? "bg-zinc-900 text-white"
+                  : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 pt-4">
         {isPending ? (
           <div className="flex flex-col gap-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-20 animate-pulse rounded-2xl bg-zinc-200"
-              />
+              <div key={i} className="h-20 animate-pulse rounded-2xl bg-zinc-200" />
             ))}
           </div>
         ) : filtered.length === 0 ? (

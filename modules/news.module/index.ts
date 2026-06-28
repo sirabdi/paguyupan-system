@@ -6,11 +6,20 @@ export interface NewsPenulis {
   role: string;
 }
 
+export type KategoriNews = "UNDANGAN" | "BERITA" | "PENGUMUMAN";
+
+export const KATEGORI_LABEL: Record<KategoriNews, string> = {
+  UNDANGAN: "Undangan",
+  BERITA: "Berita",
+  PENGUMUMAN: "Pengumuman",
+};
+
 export interface News {
   id: number;
   judul: string;
   konten: string;
   bannerUrl: string | null;
+  kategori: KategoriNews;
   penulis: NewsPenulis;
   createdAt: string;
   updatedAt: string;
@@ -20,13 +29,15 @@ export interface NewsInput {
   judul: string;
   konten: string;
   bannerUrl?: string | null;
+  kategori: KategoriNews;
 }
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-export async function fetchNews(q?: string): Promise<News[]> {
+export async function fetchNews(q?: string, kategori?: KategoriNews): Promise<News[]> {
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim());
+  if (kategori) params.set("kategori", kategori);
   const res = await fetchClient(`/api/news?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat news");
   return res.json();

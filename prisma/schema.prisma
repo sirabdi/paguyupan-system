@@ -54,18 +54,26 @@ model OtpCode {
 }
 
 model News {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   judul     String
-  konten    String   @db.Text
-  bannerUrl String?  @map("banner_url")
-  penulis   Anggota  @relation(fields: [penulisId], references: [id])
-  penulisId Int      @map("penulis_id")
+  konten    String        @db.Text
+  bannerUrl String?       @map("banner_url")
+  kategori  KategoriNews  @default(BERITA)
+  penulis   Anggota       @relation(fields: [penulisId], references: [id])
+  penulisId Int           @map("penulis_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([penulisId])
+  @@index([kategori])
   @@map("news")
+}
+
+enum KategoriNews {
+  UNDANGAN
+  BERITA
+  PENGUMUMAN
 }
 
 model Iuran {

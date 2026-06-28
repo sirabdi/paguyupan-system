@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireNewsEditor } from "@/lib/auth";
-
+import type { KategoriNews } from "@/modules/news.module";
 type RouteContext = { params: Promise<{ id: string }> };
+
+const VALID_KATEGORI: KategoriNews[] = ["UNDANGAN", "BERITA", "PENGUMUMAN"];
 
 const SELECT_NEWS = {
   id: true,
   judul: true,
   konten: true,
   bannerUrl: true,
+  kategori: true,
   createdAt: true,
   updatedAt: true,
   penulis: { select: { id: true, nama: true, role: true } },
@@ -46,7 +49,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 }); }
 
-  const { judul, konten, bannerUrl } = (body ?? {}) as Record<string, unknown>;
+  const { judul, konten, bannerUrl, kategori } = (body ?? {}) as Record<string, unknown>;
 
   try {
     const news = await prisma.news.update({
@@ -54,8 +57,10 @@ export async function PUT(req: Request, { params }: RouteContext) {
       data: {
         ...(typeof judul === "string" && judul.trim() ? { judul: judul.trim() } : {}),
         ...(typeof konten === "string" && konten.trim() ? { konten: konten.trim() } : {}),
-        // null eksplisit = hapus banner; string = set banner; undefined = tidak diubah
         ...(bannerUrl === null ? { bannerUrl: null } : typeof bannerUrl === "string" ? { bannerUrl } : {}),
+        ...(typeof kategori === "string" && VALID_KATEGORI.includes(kategori as KategoriNews)
+          ? { kategori: kategori as KategoriNews }
+          : {}),
       },
       select: SELECT_NEWS,
     });

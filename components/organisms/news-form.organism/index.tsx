@@ -7,8 +7,25 @@ import { Controller } from "react-hook-form";
 import { Loader2Icon, UploadIcon, XIcon, ArrowLeftIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button, Input, Label, RichTextEditor } from "@/components/atoms";
-import { NEWS_KEY, createNews, updateNews, type News } from "@/modules";
+import {
+  Button,
+  Input,
+  Label,
+  RichTextEditor,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/atoms";
+import {
+  NEWS_KEY,
+  createNews,
+  updateNews,
+  type News,
+  KATEGORI_LABEL,
+} from "@/modules";
+import { KATEGORI_OPTIONS } from "@/modules/news.module/dto/news.dto";
 import { useNewsForm } from "@/modules/news.module/news.form";
 import { stripHtml } from "@/utils";
 
@@ -56,6 +73,7 @@ export function NewsForm({ news }: { news?: News }) {
       judul: string;
       konten: string;
       bannerUrl?: string | null;
+      kategori: import("@/modules").KategoriNews;
     }) => (isEdit ? updateNews(news!.id, input) : createNews(input)),
     onSuccess: (saved) => {
       toast.success(
@@ -130,6 +148,36 @@ export function NewsForm({ news }: { news?: News }) {
           />
           {errors.judul && (
             <p className="text-xs text-destructive">{errors.judul.message}</p>
+          )}
+        </div>
+
+        {/* Kategori */}
+        <div className="grid gap-1">
+          <Label htmlFor="kategori" className="text-sm font-medium">
+            Kategori <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            control={control}
+            name="kategori"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger id="kategori" className="h-10 w-full">
+                  <SelectValue placeholder="Pilih kategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {KATEGORI_OPTIONS.map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {KATEGORI_LABEL[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.kategori && (
+            <p className="text-xs text-destructive">
+              {errors.kategori.message}
+            </p>
           )}
         </div>
 
