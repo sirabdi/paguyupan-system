@@ -36,13 +36,7 @@ import {
   type StatusAnggota,
 } from "@/modules/anggota.module/types";
 import { useAnggotaForm } from "@/modules/anggota.module/anggota.form";
-
-const ROLE_LABEL: Record<Role, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+import { ROLE_LABEL } from "@/utils";
 
 export function AnggotaFormDialog({
   open,

@@ -4,14 +4,7 @@ import * as React from "react";
 import { ChevronLeft, ClockIcon, NewspaperIcon } from "lucide-react";
 
 import { type News } from "@/modules";
-import { formatDate, stripHtml } from "@/utils";
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+import { formatDate, stripHtml, ROLE_LABEL } from "@/utils";
 
 export function FeaturedCard({ news }: { news: News }) {
   const [open, setOpen] = React.useState(false);

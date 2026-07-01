@@ -11,14 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/atoms";
 import { type News } from "@/modules";
-import { formatDate, stripHtml } from "@/utils";
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+import { formatDate, stripHtml, ROLE_LABEL } from "@/utils";
 
 // Kartu satu berita untuk listview admin (dipakai di layar kecil).
 export function NewsAdminCard({

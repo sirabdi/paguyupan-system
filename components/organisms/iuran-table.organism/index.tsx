@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { InboxIcon, RefreshCwIcon } from "lucide-react";
+import { InboxIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -31,23 +31,10 @@ import {
   type Iuran,
   type StatusIuranFilter,
 } from "@/modules";
-import { formatPeriode } from "@/utils";
-import { IuranCard } from "@/components/molecules";
+import { formatPeriode, generatePeriodes } from "@/utils";
+import { IuranCard, IuranSettingDialog } from "@/components/molecules";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Hasilkan daftar periode YYYY-MM dari bulan ini mundur sejumlah `count`. */
-function generatePeriodes(count = 13): string[] {
-  const result: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    result.push(`${y}-${m}`);
-  }
-  return result;
-}
 
 const PERIODES = generatePeriodes(13);
 
@@ -90,6 +77,7 @@ export function IuranTable({ canBayar }: Props) {
 
   const [periode, setPeriode] = React.useState<string>(PERIODES[0]);
   const [status, setStatus] = React.useState<StatusIuranFilter>("ALL");
+  const [settingOpen, setSettingOpen] = React.useState(false);
   const [konfirmasiTarget, setKonfirmasiTarget] = React.useState<Iuran | null>(
     null,
   );
@@ -128,20 +116,30 @@ export function IuranTable({ canBayar }: Props) {
       {/* Header: ringkasan + filter */}
       <div className="shrink-0 bg-white px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-zinc-400">
+          <p className="truncate text-xs text-zinc-400">
             {isPending
               ? "Memuat data…"
               : `${data.length} tagihan · ${sudahBayar} lunas · ${belumBayar} belum`}
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            <RefreshCwIcon className={isFetching ? "animate-spin" : ""} />
-            Refresh
-          </Button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Atur iuran default"
+              onClick={() => setSettingOpen(true)}
+            >
+              <SettingsIcon />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCwIcon className={isFetching ? "animate-spin" : ""} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-col gap-2">
@@ -211,6 +209,9 @@ export function IuranTable({ canBayar }: Props) {
           )}
         </div>
       </div>
+
+      {/* Dialog atur iuran default */}
+      <IuranSettingDialog open={settingOpen} onOpenChange={setSettingOpen} />
 
       {/* Dialog konfirmasi bayar */}
       <AlertDialog

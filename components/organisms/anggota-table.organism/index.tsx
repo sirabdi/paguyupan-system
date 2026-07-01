@@ -33,21 +33,12 @@ import {
 import { fetchMe, ME_KEY } from "@/modules/auth.module";
 import { STATUS_LABEL, type Anggota } from "@/modules/anggota.module/types";
 import { AnggotaCard, AnggotaFormDialog } from "@/components/molecules";
+import { useDebounced } from "@/utils";
 
 const FILTER_LABEL: Record<StatusFilter, string> = {
   ALL: "Semua status",
   ...STATUS_LABEL,
 };
-
-// Menunda pembaruan nilai sampai pengguna berhenti mengetik.
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (

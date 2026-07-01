@@ -22,17 +22,9 @@ import {
 
 import { NEWS_KEY, deleteNews, fetchNews, type News } from "@/modules";
 import { NewsAdminCard } from "@/components/molecules";
+import { useDebounced } from "@/utils";
 
 type Props = { canEdit: boolean };
-
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
 
 function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
