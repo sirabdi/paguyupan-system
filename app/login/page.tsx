@@ -115,7 +115,7 @@ export default function LoginPage() {
                     <Input
                       id="email"
                       type="email"
-                      autoComplete="email"
+                      autoComplete="off"
                       placeholder="nama@email.com"
                       {...register("email")}
                     />
@@ -141,7 +141,7 @@ export default function LoginPage() {
                       <Input
                         id="password"
                         type={showPass ? "text" : "password"}
-                        autoComplete="current-password"
+                        autoComplete="off"
                         placeholder="••••••••"
                         {...register("password")}
                       />

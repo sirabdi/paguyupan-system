@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { Navbar, NewsForm } from "@/components/organisms";
+import { MobileShell, NewsForm } from "@/components/organisms";
 import type { News } from "@/modules";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -14,7 +14,8 @@ export const metadata: Metadata = {
 export default async function NewsEditPage({ params }: PageProps) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (session.role !== "ADMIN" && session.role !== "SEKERTARIS") redirect("/news");
+  if (session.role !== "ADMIN" && session.role !== "SEKERTARIS")
+    redirect("/news");
 
   const { id } = await params;
   const newsId = Number(id);
@@ -43,15 +44,8 @@ export default async function NewsEditPage({ params }: PageProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">Edit Berita</h1>
-          <p className="text-sm text-muted-foreground">Perbarui konten berita yang sudah ada.</p>
-        </div>
-        <NewsForm news={news} />
-      </main>
-    </div>
+    <MobileShell title="Edit Berita" backHref="/news">
+      <NewsForm news={news} />
+    </MobileShell>
   );
 }
