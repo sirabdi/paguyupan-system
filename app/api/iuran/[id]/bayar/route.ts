@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
+import { formatRupiah } from "@/utils";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -27,11 +28,7 @@ export async function PATCH(_req: Request, { params }: RouteContext) {
       year: "numeric",
       timeZone: "Asia/Jakarta",
     });
-    const jumlahRupiah = new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(Number(iuran.jumlah));
+    const jumlahRupiah = formatRupiah(Number(iuran.jumlah));
 
     await prisma.notifikasi.createMany({
       data: [{

@@ -150,3 +150,12 @@ model LoginAttempt {
   @@index([email, createdAt])
   @@map("login_attempt")
 }
+
+// Konfigurasi aplikasi (key-value), mis. nominal iuran bulanan default.
+model Konfigurasi {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("konfigurasi")
+}

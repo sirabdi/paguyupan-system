@@ -26,3 +26,23 @@ export async function bayarIuran(id: number): Promise<Iuran> {
 }
 
 export const IURAN_KEY = ["iuran"] as const;
+
+// ── Konfigurasi: iuran bulanan default ───────────────────────────────────────
+
+export const IURAN_DEFAULT_QUERY_KEY = ["konfigurasi", "iuran-default"] as const;
+
+export async function fetchIuranDefault(): Promise<string> {
+  const res = await fetchClient("/api/konfigurasi/iuran-default");
+  if (!res.ok) throw await toError(res, "Gagal memuat konfigurasi iuran");
+  return ((await res.json()) as { value: string }).value;
+}
+
+export async function updateIuranDefault(value: string): Promise<string> {
+  const res = await fetchClient("/api/konfigurasi/iuran-default", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) throw await toError(res, "Gagal menyimpan konfigurasi iuran");
+  return ((await res.json()) as { value: string }).value;
+}

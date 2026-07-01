@@ -2,6 +2,7 @@ export * from "./anggota-card.molecule";
 export * from "./anggota-form-dialog.molecule";
 export * from "./header-action.molecule";
 export * from "./iuran-card.molecule";
+export * from "./iuran-setting-dialog.molecule";
 export * from "./logout-button.molecule";
 export * from "./news-admin-card.molecule";
 export * from "./news-card.molecule";
