@@ -155,7 +155,7 @@ export function SmallCard({ news }: { news: News }) {
             {stripHtml(news.konten)}
           </p>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-400">
-            <span className="max-w-30 truncate">{news.penulis.nama}</span>
+            <span className="max-w-24 truncate">{news.penulis.nama}</span>
             <span>·</span>
             <span>{formatDate(news.createdAt)}</span>
           </div>
