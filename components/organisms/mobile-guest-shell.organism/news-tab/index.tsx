@@ -18,6 +18,7 @@ type Props = {
   myAnggotaId: number;
   onNotifClick: (notif: Notifikasi) => void;
   pendingArticleId: number | null;
+  pendingKomentarId: number | null;
   onArticleOpened: () => void;
 };
 
@@ -26,6 +27,7 @@ export function NewsTab({
   myAnggotaId,
   onNotifClick,
   pendingArticleId,
+  pendingKomentarId,
   onArticleOpened,
 }: Props) {
   const [q, setQ] = React.useState("");
@@ -124,6 +126,7 @@ export function NewsTab({
           news={pendingArticle}
           myAnggotaId={myAnggotaId}
           autoOpenComments
+          pendingKomentarId={pendingKomentarId}
           onClose={onArticleOpened}
         />
       )}

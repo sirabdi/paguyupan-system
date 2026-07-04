@@ -48,6 +48,7 @@ export function MobileGuestShell({
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
   const [pendingArticleId, setPendingArticleId] = React.useState<number | null>(null);
+  const [pendingKomentarId, setPendingKomentarId] = React.useState<number | null>(null);
 
   const {
     data: allNews = [],
@@ -72,6 +73,7 @@ export function MobileGuestShell({
     const articleId = notif.newsId ?? notif.referensiId;
     setTab("news");
     setPendingArticleId(articleId);
+    setPendingKomentarId(notif.tipe === "KOMENTAR_BALASAN" ? notif.referensiId : null);
   }
 
   return (
@@ -98,7 +100,11 @@ export function MobileGuestShell({
           myAnggotaId={myAnggotaId}
           onNotifClick={handleNotifClick}
           pendingArticleId={pendingArticleId}
-          onArticleOpened={() => setPendingArticleId(null)}
+          pendingKomentarId={pendingKomentarId}
+          onArticleOpened={() => {
+            setPendingArticleId(null);
+            setPendingKomentarId(null);
+          }}
         />
       )}
 

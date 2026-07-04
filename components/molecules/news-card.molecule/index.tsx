@@ -181,11 +181,13 @@ export function NewsDetailSheet({
   myAnggotaId,
   onClose,
   autoOpenComments = false,
+  pendingKomentarId = null,
 }: {
   news: News;
   myAnggotaId: number;
   onClose: () => void;
   autoOpenComments?: boolean;
+  pendingKomentarId?: number | null;
 }) {
   const [commentOpen, setCommentOpen] = React.useState(autoOpenComments);
   const likeMutation = useLikeMutation(news.id);
@@ -264,6 +266,7 @@ export function NewsDetailSheet({
         open={commentOpen}
         newsId={news.id}
         myAnggotaId={myAnggotaId}
+        pendingKomentarId={pendingKomentarId}
         onClose={() => setCommentOpen(false)}
       />
     </div>
@@ -276,11 +279,13 @@ function CommentBottomSheet({
   open,
   newsId,
   myAnggotaId,
+  pendingKomentarId = null,
   onClose,
 }: {
   open: boolean;
   newsId: number;
   myAnggotaId: number;
+  pendingKomentarId?: number | null;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -291,6 +296,16 @@ function CommentBottomSheet({
     queryFn: () => fetchKomentar(newsId),
     enabled: open,
   });
+
+  const [autoExpandKomentarId, setAutoExpandKomentarId] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    if (!pendingKomentarId || komentarList.length === 0) return;
+    const root = komentarList.find((k) =>
+      k.id === pendingKomentarId || k.replies.some((r) => r.id === pendingKomentarId),
+    );
+    if (root) setAutoExpandKomentarId(root.id);
+  }, [pendingKomentarId, komentarList]);
 
   const [input, setInput] = React.useState("");
   const [replyTo, setReplyTo] = React.useState<{ parentId: number; targetId: number; targetNama: string } | null>(null);
@@ -323,7 +338,8 @@ function CommentBottomSheet({
   function handleSubmit() {
     const trimmed = input.trim();
     if (!trimmed) return;
-    postMutation.mutate({ konten: trimmed, parentId: replyTo?.parentId, targetId: replyTo?.targetId });
+    const konten = replyTo ? `@[${replyTo.targetNama}] ${trimmed}` : trimmed;
+    postMutation.mutate({ konten, parentId: replyTo?.parentId, targetId: replyTo?.targetId });
   }
 
   return (
@@ -360,6 +376,7 @@ function CommentBottomSheet({
                 myAnggotaId={myAnggotaId}
                 onReply={handleReply}
                 onDelete={(id) => deleteMutation.mutate(id)}
+                autoExpandReplies={k.id === autoExpandKomentarId}
               />
             ))}
           </ul>
@@ -414,14 +431,20 @@ function KomentarItem({
   myAnggotaId,
   onReply,
   onDelete,
+  autoExpandReplies = false,
 }: {
   item: Komentar;
   myAnggotaId: number;
   onReply: (parentId: number, targetId: number, targetNama: string) => void;
   onDelete: (id: number) => void;
+  autoExpandReplies?: boolean;
 }) {
   const canDelete = item.penulis.id === myAnggotaId;
   const [showReplies, setShowReplies] = React.useState(false);
+
+  React.useEffect(() => {
+    if (autoExpandReplies) setShowReplies(true);
+  }, [autoExpandReplies]);
 
   return (
     <li>
@@ -478,7 +501,7 @@ function KomentarItem({
                   <span className="text-xs font-semibold text-zinc-800">{r.penulis.nama}</span>
                   <span className="text-[10px] text-zinc-400">{formatDate(r.createdAt)}</span>
                 </div>
-                <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{r.konten}</p>
+                <ReplyContent konten={r.konten} />
                 <div className="mt-1 flex items-center gap-3">
                   <button
                     type="button"
@@ -503,6 +526,19 @@ function KomentarItem({
         </ul>
       )}
     </li>
+  );
+}
+
+// ─── ReplyContent ────────────────────────────────────────────────────────────
+
+function ReplyContent({ konten }: { konten: string }) {
+  const match = konten.match(/^@\[(.+?)\] ([\s\S]+)$/s);
+  if (!match) return <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{konten}</p>;
+  return (
+    <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">
+      <span className="font-semibold text-blue-500">@{match[1]}</span>{" "}
+      {match[2]}
+    </p>
   );
 }
 
