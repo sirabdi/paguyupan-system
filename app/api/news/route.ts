@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireNewsEditor } from "@/lib/auth";
+import type { KategoriNews } from "@/modules/news.module";
+
+const VALID_KATEGORI: KategoriNews[] = ["UNDANGAN", "BERITA", "PENGUMUMAN"];
 
 function selectNews(anggotaId: number) {
   return {
@@ -101,7 +104,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { judul, konten, bannerUrl } = (body ?? {}) as Record<string, unknown>;
+  const { judul, konten, bannerUrl, kategori } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof judul !== "string" || judul.trim() === "") {
     return NextResponse.json(
@@ -121,6 +124,7 @@ export async function POST(req: Request) {
       judul: judul.trim(),
       konten: konten.trim(),
       bannerUrl: typeof bannerUrl === "string" ? bannerUrl : null,
+      kategori: resolvedKategori,
       penulisId: auth.session.anggotaId,
     },
     select: selectNews(auth.session.anggotaId),

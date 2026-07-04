@@ -56,7 +56,7 @@ model OtpCode {
 }
 
 model News {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   judul     String
   konten    String   @db.Text
   bannerUrl String?  @map("banner_url")
@@ -69,6 +69,7 @@ model News {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([penulisId])
+  @@index([kategori])
   @@map("news")
 }
 

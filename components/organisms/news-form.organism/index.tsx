@@ -7,8 +7,25 @@ import { Controller } from "react-hook-form";
 import { Loader2Icon, UploadIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button, Input, Label, RichTextEditor } from "@/components/atoms";
-import { NEWS_KEY, createNews, updateNews, type News } from "@/modules";
+import {
+  Button,
+  Input,
+  Label,
+  RichTextEditor,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/atoms";
+import {
+  NEWS_KEY,
+  createNews,
+  updateNews,
+  type News,
+  KATEGORI_LABEL,
+} from "@/modules";
+import { KATEGORI_OPTIONS } from "@/modules/news.module/dto/news.dto";
 import { useNewsForm } from "@/modules/news.module/news.form";
 import { stripHtml } from "@/utils";
 
@@ -41,21 +58,17 @@ export function NewsForm({ news }: { news?: News }) {
   const [bannerUploading, setBannerUploading] = React.useState(false);
 
   const {
-    register,
     handleSubmit,
     control,
-    setValue,
-    watch,
     formState: { errors, isValid },
   } = useNewsForm(news);
-
-  const bannerUrl = watch("bannerUrl");
 
   const mutation = useMutation({
     mutationFn: (input: {
       judul: string;
       konten: string;
       bannerUrl?: string | null;
+      kategori: import("@/modules").KategoriNews;
     }) => (isEdit ? updateNews(news!.id, input) : createNews(input)),
     onSuccess: (saved) => {
       toast.success(
@@ -68,27 +81,6 @@ export function NewsForm({ news }: { news?: News }) {
   });
 
   const saving = mutation.isPending;
-
-  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(
-        "Hanya gambar JPEG, PNG, WebP, GIF, atau AVIF yang diizinkan",
-      );
-      return;
-    }
-    setBannerUploading(true);
-    try {
-      const url = await uploadBanner(file);
-      setValue("bannerUrl", url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal upload banner");
-    } finally {
-      setBannerUploading(false);
-    }
-  }
 
   return (
     <form
