@@ -1,6 +1,14 @@
 import { fetchClient, toError } from "@/lib/fetch-client";
 import type { Iuran, StatusIuranFilter } from "./types";
 
+interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 export type { Iuran, StatusIuranFilter };
 export { STATUS_IURAN_LABEL } from "./types";
 
@@ -13,6 +21,19 @@ export async function fetchIuran(filter: IuranFilter): Promise<Iuran[]> {
   const params = new URLSearchParams();
   if (filter.periode) params.set("periode", filter.periode);
   if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+
+  const res = await fetchClient(`/api/iuran?${params.toString()}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat data iuran");
+  return res.json();
+}
+
+export async function fetchIuranPaginated(
+  filter: IuranFilter & { page: number },
+): Promise<PaginatedResponse<Iuran>> {
+  const params = new URLSearchParams();
+  if (filter.periode) params.set("periode", filter.periode);
+  if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+  params.set("page", String(filter.page));
 
   const res = await fetchClient(`/api/iuran?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat data iuran");

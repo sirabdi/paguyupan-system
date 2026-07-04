@@ -1,26 +1,32 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { InboxIcon } from "lucide-react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { InboxIcon, Loader2Icon } from "lucide-react";
 
-import { fetchNews, NEWS_KEY } from "@/modules";
+import { fetchNewsPaginated, NEWS_KEY } from "@/modules";
 import { SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
+import { useDebounced } from "@/utils";
 
 export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: number }) {
-  const { data: allNews = [], isPending } = useQuery({
-    queryKey: NEWS_KEY,
-    queryFn: () => fetchNews(),
+  const [q, setQ] = React.useState("");
+  const debouncedQ = useDebounced(q, 300);
+
+  const {
+    data,
+    isPending,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: [...NEWS_KEY, "paginated", debouncedQ],
+    queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
   });
 
-  const [q, setQ] = React.useState("");
-  const filtered = q.trim()
-    ? allNews.filter(
-        (n) =>
-          n.judul.toLowerCase().includes(q.toLowerCase()) ||
-          n.penulis.nama.toLowerCase().includes(q.toLowerCase()),
-      )
-    : allNews;
+  const allNews = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -29,7 +35,7 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
           <div>
             <h1 className="text-xl font-bold text-zinc-900">Semua Berita</h1>
             <p className="text-xs text-zinc-400">
-              {allNews.length} artikel tersedia
+              {isPending ? "Memuat…" : `${total} artikel tersedia`}
             </p>
           </div>
           <HeaderActions role={role} />
@@ -53,7 +59,7 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
               />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : allNews.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center text-zinc-400">
             <InboxIcon className="size-10" />
             <p className="text-sm">
@@ -62,9 +68,26 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {filtered.map((n) => (
+            {allNews.map((n) => (
               <SmallCard key={n.id} news={n} myAnggotaId={myAnggotaId} />
             ))}
+
+            {hasNextPage && (
+              <button
+                className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white py-3 text-sm text-zinc-500 active:bg-zinc-50 disabled:opacity-50"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2Icon size={14} className="animate-spin" />
+                    Memuat…
+                  </>
+                ) : (
+                  "Muat lebih banyak"
+                )}
+              </button>
+            )}
           </div>
         )}
       </div>

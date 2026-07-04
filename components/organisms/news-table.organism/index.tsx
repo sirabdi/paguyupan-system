@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InboxIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ import {
   Skeleton,
 } from "@/components/atoms";
 
-import { NEWS_KEY, deleteNews, fetchNews, type News } from "@/modules";
+import { NEWS_KEY, deleteNews, fetchNewsPaginated, type News } from "@/modules";
 import { NewsAdminCard } from "@/components/molecules";
 import { useDebounced } from "@/utils";
 
@@ -70,16 +70,24 @@ export function NewsTable({ canEdit }: Props) {
   const [deleteTarget, setDeleteTarget] = React.useState<News | null>(null);
 
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...NEWS_KEY, debouncedQ],
-    queryFn: () => fetchNews(debouncedQ),
+    queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: (target: News) => deleteNews(target.id),
@@ -101,7 +109,7 @@ export function NewsTable({ canEdit }: Props) {
           <p className="text-xs text-zinc-400">
             {isPending
               ? "Memuat data…"
-              : `${data.length} berita${q ? " · terfilter" : ""}`}
+              : `${total} berita${q ? " · terfilter" : ""}`}
           </p>
           {canEdit && (
             <Button size="sm" onClick={() => router.push("/news/create")}>
@@ -126,7 +134,7 @@ export function NewsTable({ canEdit }: Props) {
       {/* Listview */}
       <div
         className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
-        data-fetching={isFetching && !isPending}
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
       >
         <div className="flex flex-col gap-2">
           {isPending ? (
@@ -139,22 +147,36 @@ export function NewsTable({ canEdit }: Props) {
             ))
           ) : isError ? (
             <ErrorState onRetry={refetch} />
-          ) : data.length === 0 ? (
+          ) : allItems.length === 0 ? (
             <EmptyState
               hasQuery={Boolean(q)}
               canEdit={canEdit}
               onCreate={() => router.push("/news/create")}
             />
           ) : (
-            data.map((n) => (
-              <NewsAdminCard
-                key={n.id}
-                news={n}
-                canEdit={canEdit}
-                onEdit={(x) => router.push(`/news/edit/${x.id}`)}
-                onDelete={setDeleteTarget}
-              />
-            ))
+            <>
+              {allItems.map((n) => (
+                <NewsAdminCard
+                  key={n.id}
+                  news={n}
+                  canEdit={canEdit}
+                  onEdit={(x) => router.push(`/news/edit/${x.id}`)}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

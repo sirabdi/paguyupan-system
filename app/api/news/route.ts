@@ -43,20 +43,46 @@ function buildNewsItem(raw: {
   return { ...rest, liked: like.length > 0 };
 }
 
-// GET /api/news?q=keyword  — semua role yang sudah login
+// GET /api/news?q=keyword&page=1  — semua role yang sudah login
+// Tanpa page= → semua berita (flat array, backward compat)
+// Dengan page= → paginated { data, page, page_size, total, has_more }
 export async function GET(req: Request) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
+  const pageStr = searchParams.get("page");
+
+  const where = q ? { judul: { contains: q } } : {};
+
+  if (pageStr !== null) {
+    const page = Math.max(1, Number(pageStr) || 1);
+    const pageSize = 5;
+    const [rows, total] = await Promise.all([
+      prisma.news.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        select: selectNews(auth.session.anggotaId),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.news.count({ where }),
+    ]);
+    return NextResponse.json({
+      data: rows.map(buildNewsItem),
+      page,
+      page_size: pageSize,
+      total,
+      has_more: page * pageSize < total,
+    });
+  }
 
   const rows = await prisma.news.findMany({
     where: q ? { judul: { contains: q } } : undefined,
     orderBy: { createdAt: "desc" },
     select: selectNews(auth.session.anggotaId),
   });
-
   return NextResponse.json(rows.map(buildNewsItem));
 }
 
@@ -66,16 +92,28 @@ export async function POST(req: Request) {
   if (!auth.ok) return auth.response;
 
   let body: unknown;
-  try { body = await req.json(); }
-  catch { return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 }); }
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Body harus JSON yang valid" },
+      { status: 400 },
+    );
+  }
 
   const { judul, konten, bannerUrl } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof judul !== "string" || judul.trim() === "") {
-    return NextResponse.json({ error: "Field 'judul' wajib diisi" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Field 'judul' wajib diisi" },
+      { status: 400 },
+    );
   }
   if (typeof konten !== "string" || konten.trim() === "") {
-    return NextResponse.json({ error: "Field 'konten' wajib diisi" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Field 'konten' wajib diisi" },
+      { status: 400 },
+    );
   }
 
   const row = await prisma.news.create({

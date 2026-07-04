@@ -22,6 +22,14 @@ export interface AnggotaInput {
   role?: import("./types").Role;
 }
 
+export interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export async function fetchAnggota(filter: AnggotaFilter): Promise<Anggota[]> {
@@ -30,6 +38,19 @@ export async function fetchAnggota(filter: AnggotaFilter): Promise<Anggota[]> {
   if (filter.status && filter.status !== "ALL") {
     params.set("status", filter.status);
   }
+
+  const res = await fetchClient(`/api/anggota?${params.toString()}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat data anggota");
+  return res.json();
+}
+
+export async function fetchAnggotaPaginated(
+  filter: AnggotaFilter & { page: number },
+): Promise<PaginatedResponse<Anggota>> {
+  const params = new URLSearchParams();
+  if (filter.q?.trim()) params.set("q", filter.q.trim());
+  if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+  params.set("page", String(filter.page));
 
   const res = await fetchClient(`/api/anggota?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat data anggota");

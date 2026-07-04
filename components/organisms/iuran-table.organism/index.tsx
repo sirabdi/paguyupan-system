@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { InboxIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ import {
   IURAN_KEY,
   STATUS_IURAN_LABEL,
   bayarIuran,
-  fetchIuran,
+  fetchIuranPaginated,
   type Iuran,
   type StatusIuranFilter,
 } from "@/modules";
@@ -84,16 +84,24 @@ export function IuranTable({ canBayar }: Props) {
 
   const filter = { periode, status };
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...IURAN_KEY, filter],
-    queryFn: () => fetchIuran(filter),
+    queryFn: ({ pageParam }) => fetchIuranPaginated({ ...filter, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const bayarMutation = useMutation({
     mutationFn: (iuran: Iuran) => bayarIuran(iuran.id),
@@ -107,8 +115,8 @@ export function IuranTable({ canBayar }: Props) {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const sudahBayar = data.filter((d) => d.status === "LUNAS").length;
-  const belumBayar = data.filter((d) => d.status === "BELUM_BAYAR").length;
+  const sudahBayar = allItems.filter((d) => d.status === "LUNAS").length;
+  const belumBayar = allItems.filter((d) => d.status === "BELUM_BAYAR").length;
   const memproses = bayarMutation.isPending;
 
   return (
@@ -119,7 +127,7 @@ export function IuranTable({ canBayar }: Props) {
           <p className="truncate text-xs text-zinc-400">
             {isPending
               ? "Memuat data…"
-              : `${data.length} tagihan · ${sudahBayar} lunas · ${belumBayar} belum`}
+              : `${total} tagihan · ${sudahBayar} lunas · ${belumBayar} belum`}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
             <Button
@@ -181,7 +189,7 @@ export function IuranTable({ canBayar }: Props) {
       {/* Listview */}
       <div
         className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
-        data-fetching={isFetching && !isPending}
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
       >
         <div className="flex flex-col gap-2">
           {isPending ? (
@@ -194,18 +202,32 @@ export function IuranTable({ canBayar }: Props) {
             ))
           ) : isError ? (
             <ErrorState onRetry={refetch} />
-          ) : data.length === 0 ? (
+          ) : allItems.length === 0 ? (
             <EmptyState />
           ) : (
-            data.map((iuran) => (
-              <IuranCard
-                key={iuran.id}
-                iuran={iuran}
-                canBayar={canBayar}
-                onBayar={setKonfirmasiTarget}
-                disabled={memproses}
-              />
-            ))
+            <>
+              {allItems.map((iuran) => (
+                <IuranCard
+                  key={iuran.id}
+                  iuran={iuran}
+                  canBayar={canBayar}
+                  onBayar={setKonfirmasiTarget}
+                  disabled={memproses}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

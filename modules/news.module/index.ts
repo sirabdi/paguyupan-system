@@ -1,5 +1,13 @@
 import { fetchClient, toError } from "@/lib/fetch-client";
 
+interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 export interface NewsPenulis {
   id: number;
   nama: string;
@@ -57,6 +65,19 @@ export async function updateNews(id: number, input: NewsInput): Promise<News> {
 export async function deleteNews(id: number): Promise<void> {
   const res = await fetchClient(`/api/news/${id}`, { method: "DELETE" });
   if (!res.ok) throw await toError(res, "Gagal menghapus news");
+}
+
+export async function fetchNewsPaginated(filter: {
+  q?: string;
+  page: number;
+}): Promise<PaginatedResponse<News>> {
+  const params = new URLSearchParams();
+  if (filter.q?.trim()) params.set("q", filter.q.trim());
+  params.set("page", String(filter.page));
+
+  const res = await fetchClient(`/api/news?${params.toString()}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat news");
+  return res.json();
 }
 
 export const NEWS_KEY = ["news"] as const;
