@@ -11,6 +11,7 @@ function selectNews(anggotaId: number) {
     judul: true,
     konten: true,
     bannerUrl: true,
+    kategori: true,
     createdAt: true,
     updatedAt: true,
     penulis: { select: { id: true, nama: true, role: true } },
@@ -25,10 +26,6 @@ function selectNews(anggotaId: number) {
       select: { id: true },
     },
   } as const;
-}
-
-function toNewsResponse(n: ReturnType<typeof buildNewsItem>) {
-  return n;
 }
 
 function buildNewsItem(raw: {
@@ -56,8 +53,14 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
   const pageStr = searchParams.get("page");
+  const kategoriParam = searchParams.get("kategori");
+  const resolvedKategoriFilter: KategoriNews | undefined =
+    VALID_KATEGORI.includes(kategoriParam as KategoriNews) ? (kategoriParam as KategoriNews) : undefined;
 
-  const where = q ? { judul: { contains: q } } : {};
+  const where = {
+    ...(q ? { judul: { contains: q } } : {}),
+    ...(resolvedKategoriFilter ? { kategori: resolvedKategoriFilter } : {}),
+  };
 
   if (pageStr !== null) {
     const page = Math.max(1, Number(pageStr) || 1);
@@ -82,7 +85,7 @@ export async function GET(req: Request) {
   }
 
   const rows = await prisma.news.findMany({
-    where: q ? { judul: { contains: q } } : undefined,
+    where,
     orderBy: { createdAt: "desc" },
     select: selectNews(auth.session.anggotaId),
   });
@@ -118,6 +121,11 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
+  const resolvedKategori: KategoriNews =
+    typeof kategori === "string" && VALID_KATEGORI.includes(kategori as KategoriNews)
+      ? (kategori as KategoriNews)
+      : "BERITA";
 
   const row = await prisma.news.create({
     data: {

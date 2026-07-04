@@ -81,10 +81,12 @@ export async function deleteNews(id: number): Promise<void> {
 export async function fetchNewsPaginated(filter: {
   q?: string;
   page: number;
+  kategori?: KategoriNews;
 }): Promise<PaginatedResponse<News>> {
   const params = new URLSearchParams();
   if (filter.q?.trim()) params.set("q", filter.q.trim());
   params.set("page", String(filter.page));
+  if (filter.kategori) params.set("kategori", filter.kategori);
 
   const res = await fetchClient(`/api/news?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat news");

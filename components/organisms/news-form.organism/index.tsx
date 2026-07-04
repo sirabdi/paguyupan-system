@@ -59,9 +59,37 @@ export function NewsForm({ news }: { news?: News }) {
 
   const {
     handleSubmit,
+    register,
     control,
+    watch,
+    setValue,
     formState: { errors, isValid },
   } = useNewsForm(news);
+
+  const bannerUrl = watch("bannerUrl");
+
+  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Format gambar tidak didukung");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran gambar maks. 5 MB");
+      return;
+    }
+    setBannerUploading(true);
+    try {
+      const url = await uploadBanner(file);
+      setValue("bannerUrl", url);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBannerUploading(false);
+      e.target.value = "";
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: (input: {
@@ -185,6 +213,36 @@ export function NewsForm({ news }: { news?: News }) {
               className="hidden"
               onChange={handleBannerChange}
             />
+          </div>
+
+          {/* Kategori */}
+          <div className="grid gap-1">
+            <Label className="text-sm font-medium">
+              Kategori <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              control={control}
+              name="kategori"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-10 w-full text-sm">
+                    <SelectValue placeholder="Pilih kategori">
+                      {(v) => KATEGORI_LABEL[v as keyof typeof KATEGORI_LABEL] ?? v}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KATEGORI_OPTIONS.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {KATEGORI_LABEL[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.kategori && (
+              <p className="text-xs text-destructive">{errors.kategori.message}</p>
+            )}
           </div>
 
           {/* Konten */}

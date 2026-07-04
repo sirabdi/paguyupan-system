@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireNewsEditor } from "@/lib/auth";
 import type { KategoriNews } from "@/modules/news.module";
+
 type RouteContext = { params: Promise<{ id: string }> };
+
+const VALID_KATEGORI: KategoriNews[] = ["UNDANGAN", "BERITA", "PENGUMUMAN"];
 
 function selectNews(anggotaId: number) {
   return {

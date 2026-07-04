@@ -2,16 +2,26 @@
 
 import * as React from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { InboxIcon, Loader2Icon } from "lucide-react";
+import { InboxIcon } from "lucide-react";
 
 import {
   fetchNewsPaginated,
   fetchNewsById,
   NEWS_KEY,
+  KATEGORI_LABEL,
+  type KategoriNews,
   type Notifikasi,
 } from "@/modules";
 import { NewsDetailSheet, SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
+import { Button } from "@/components/atoms";
 import { useDebounced } from "@/utils";
+
+const FILTER_OPTIONS: { label: string; value: KategoriNews | undefined }[] = [
+  { label: "Semua", value: undefined },
+  { label: KATEGORI_LABEL.BERITA, value: "BERITA" },
+  { label: KATEGORI_LABEL.PENGUMUMAN, value: "PENGUMUMAN" },
+  { label: KATEGORI_LABEL.UNDANGAN, value: "UNDANGAN" },
+];
 
 type Props = {
   role: string;
@@ -31,6 +41,7 @@ export function NewsTab({
   onArticleOpened,
 }: Props) {
   const [q, setQ] = React.useState("");
+  const [kategori, setKategori] = React.useState<KategoriNews | undefined>(undefined);
   const debouncedQ = useDebounced(q, 300);
 
   const {
@@ -40,8 +51,8 @@ export function NewsTab({
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery({
-    queryKey: [...NEWS_KEY, "paginated", debouncedQ],
-    queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam }),
+    queryKey: [...NEWS_KEY, "paginated", debouncedQ, kategori],
+    queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam, kategori }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
   });
@@ -115,20 +126,16 @@ export function NewsTab({
             ))}
 
             {hasNextPage && (
-              <button
-                className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white py-3 text-sm text-zinc-500 active:bg-zinc-50 disabled:opacity-50"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? (
-                  <>
-                    <Loader2Icon size={14} className="animate-spin" />
-                    Memuat…
-                  </>
-                ) : (
-                  "Muat lebih banyak"
-                )}
-              </button>
+              <div className="pt-2 text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                >
+                  {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                </Button>
+              </div>
             )}
           </div>
         )}
