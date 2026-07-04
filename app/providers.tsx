@@ -37,10 +37,14 @@ function SessionWatcher() {
 
     // Instant: listen event dari fetchClient saat ada response 401
     async function on401() {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
-      if (res.status !== 401) return;
-      const body = (await res.json().catch(() => null)) as { reason?: string } | null;
-      handleUnauthorized(body?.reason);
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (res.status !== 401) return;
+        const body = (await res.json().catch(() => null)) as { reason?: string } | null;
+        handleUnauthorized(body?.reason);
+      } catch {
+        // Network error (server restart / offline) — abaikan
+      }
     }
 
     window.addEventListener("auth:401", on401);
@@ -48,10 +52,14 @@ function SessionWatcher() {
     // Polling sebagai fallback (tab idle tidak fetch apapun)
     async function pollSession() {
       if (redirectingRef.current) return;
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
-      if (res.status !== 401) return;
-      const body = (await res.json().catch(() => null)) as { reason?: string } | null;
-      handleUnauthorized(body?.reason);
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (res.status !== 401) return;
+        const body = (await res.json().catch(() => null)) as { reason?: string } | null;
+        handleUnauthorized(body?.reason);
+      } catch {
+        // Network error (server restart / offline) — abaikan
+      }
     }
 
     const interval = setInterval(pollSession, POLL_INTERVAL_MS);

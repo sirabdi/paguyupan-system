@@ -35,11 +35,12 @@ export async function postKomentar(
   newsId: number,
   konten: string,
   parentId?: number,
+  targetId?: number,
 ): Promise<KomentarReply> {
   const res = await fetchClient(`/api/news/${newsId}/komentar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ konten, parentId }),
+    body: JSON.stringify({ konten, parentId, targetId }),
   });
   if (!res.ok) throw await toError(res, "Gagal mengirim komentar");
   return res.json();

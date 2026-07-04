@@ -1,14 +1,35 @@
 "use client";
 
 import * as React from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { InboxIcon, Loader2Icon } from "lucide-react";
 
-import { fetchNewsPaginated, NEWS_KEY } from "@/modules";
-import { SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
+import {
+  fetchNewsPaginated,
+  fetchNewsById,
+  NEWS_KEY,
+  type Notifikasi,
+} from "@/modules";
+import { NewsDetailSheet, SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
 import { useDebounced } from "@/utils";
 
-export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: number }) {
+type Props = {
+  role: string;
+  myAnggotaId: number;
+  onNotifClick: (notif: Notifikasi) => void;
+  pendingArticleId: number | null;
+  pendingKomentarId: number | null;
+  onArticleOpened: () => void;
+};
+
+export function NewsTab({
+  role,
+  myAnggotaId,
+  onNotifClick,
+  pendingArticleId,
+  pendingKomentarId,
+  onArticleOpened,
+}: Props) {
   const [q, setQ] = React.useState("");
   const debouncedQ = useDebounced(q, 300);
 
@@ -25,6 +46,13 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
     getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
   });
 
+  // Fetch artikel spesifik ketika ada notif yang diklik
+  const { data: pendingArticle } = useQuery({
+    queryKey: [...NEWS_KEY, "detail", pendingArticleId],
+    queryFn: () => fetchNewsById(pendingArticleId!),
+    enabled: pendingArticleId !== null,
+  });
+
   const allNews = data?.pages.flatMap((p) => p.data) ?? [];
   const total = data?.pages[0]?.total ?? 0;
 
@@ -38,7 +66,7 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
               {isPending ? "Memuat…" : `${total} artikel tersedia`}
             </p>
           </div>
-          <HeaderActions role={role} />
+          <HeaderActions role={role} onNotifClick={onNotifClick} />
         </div>
 
         <SearchBar
@@ -91,6 +119,17 @@ export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: numb
           </div>
         )}
       </div>
+
+      {/* Auto-open artikel dari klik notifikasi */}
+      {pendingArticle && (
+        <NewsDetailSheet
+          news={pendingArticle}
+          myAnggotaId={myAnggotaId}
+          autoOpenComments
+          pendingKomentarId={pendingKomentarId}
+          onClose={onArticleOpened}
+        />
+      )}
     </div>
   );
 }

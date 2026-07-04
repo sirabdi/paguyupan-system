@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellIcon,
   ChevronRightIcon,
+  MessageCircleIcon,
+  MessageCircleReplyIcon,
   ReceiptIcon,
   SlidersHorizontal,
   UsersIcon,
@@ -41,12 +43,18 @@ const MENU_BY_ROLE: Record<string, MenuItem[]> = {
 const TIPE_ICON: Record<TipeNotif, React.ReactNode> = {
   IURAN_TAGIHAN: <ReceiptIcon className="size-4 text-amber-600" />,
   IURAN_LUNAS: <WalletIcon className="size-4 text-green-600" />,
+  KOMENTAR_ARTIKEL: <MessageCircleIcon className="size-4 text-blue-600" />,
+  KOMENTAR_BALASAN: <MessageCircleReplyIcon className="size-4 text-violet-600" />,
 };
 
 const TIPE_BG: Record<TipeNotif, string> = {
   IURAN_TAGIHAN: "bg-amber-50",
   IURAN_LUNAS: "bg-green-50",
+  KOMENTAR_ARTIKEL: "bg-blue-50",
+  KOMENTAR_BALASAN: "bg-violet-50",
 };
+
+const KOMENTAR_TIPES: TipeNotif[] = ["KOMENTAR_ARTIKEL", "KOMENTAR_BALASAN"];
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -58,7 +66,12 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hours / 24)} hari lalu`;
 }
 
-export function HeaderActions({ role }: { role: string }) {
+type Props = {
+  role: string;
+  onNotifClick?: (notif: Notifikasi) => void;
+};
+
+export function HeaderActions({ role, onNotifClick }: Props) {
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [bellOpen, setBellOpen] = React.useState(false);
@@ -82,6 +95,13 @@ export function HeaderActions({ role }: { role: string }) {
     setBellOpen(true);
     queryClient.invalidateQueries({ queryKey: NOTIF_KEY });
     if (unread > 0) bacaMutation.mutate();
+  }
+
+  function handleNotifClick(notif: Notifikasi) {
+    if (KOMENTAR_TIPES.includes(notif.tipe)) {
+      setBellOpen(false);
+      onNotifClick?.(notif);
+    }
   }
 
   return (
@@ -199,7 +219,15 @@ export function HeaderActions({ role }: { role: string }) {
               ) : (
                 <ul className="divide-y divide-zinc-100">
                   {notifikasi.map((n) => (
-                    <NotifItem key={n.id} notif={n} />
+                    <NotifItem
+                      key={n.id}
+                      notif={n}
+                      onClick={
+                        KOMENTAR_TIPES.includes(n.tipe)
+                          ? () => handleNotifClick(n)
+                          : undefined
+                      }
+                    />
                   ))}
                 </ul>
               )}
@@ -211,11 +239,15 @@ export function HeaderActions({ role }: { role: string }) {
   );
 }
 
-function NotifItem({ notif }: { notif: Notifikasi }) {
-  return (
-    <li
-      className={`flex gap-3 px-4 py-3.5 ${!notif.dibaca ? "bg-blue-50/50" : ""}`}
-    >
+function NotifItem({
+  notif,
+  onClick,
+}: {
+  notif: Notifikasi;
+  onClick?: () => void;
+}) {
+  const content = (
+    <>
       <div
         className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full ${TIPE_BG[notif.tipe]}`}
       >
@@ -236,7 +268,32 @@ function NotifItem({ notif }: { notif: Notifikasi }) {
         <p className="mt-1 text-[10px] text-zinc-400">
           {timeAgo(notif.createdAt)}
         </p>
+        {onClick && (
+          <p className="mt-1 text-[10px] font-medium text-blue-500">
+            Ketuk untuk melihat artikel →
+          </p>
+        )}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <li>
+        <button
+          type="button"
+          onClick={onClick}
+          className={`flex w-full gap-3 px-4 py-3.5 text-left transition-colors hover:bg-zinc-50 active:bg-zinc-100 ${!notif.dibaca ? "bg-blue-50/50" : ""}`}
+        >
+          {content}
+        </button>
+      </li>
+    );
+  }
+
+  return (
+    <li className={`flex gap-3 px-4 py-3.5 ${!notif.dibaca ? "bg-blue-50/50" : ""}`}>
+      {content}
     </li>
   );
 }
