@@ -99,7 +99,7 @@ export function FeaturedCard({ news }: { news: News }) {
             <ClockIcon className="size-3" />
             <span>{formatDate(news.createdAt)}</span>
             <span>·</span>
-            <span>{news.penulis.nama}</span>
+            <span className="max-w-36 truncate">{news.penulis.nama}</span>
           </div>
         </div>
       </Link>
@@ -155,7 +155,7 @@ export function SmallCard({ news }: { news: News }) {
             {stripHtml(news.konten)}
           </p>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-400">
-            <span>{news.penulis.nama}</span>
+            <span className="max-w-30 truncate">{news.penulis.nama}</span>
             <span>·</span>
             <span>{formatDate(news.createdAt)}</span>
           </div>
