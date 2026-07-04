@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { InboxIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,7 +27,7 @@ import {
 import {
   ANGGOTA_KEY,
   deleteAnggota,
-  fetchAnggota,
+  fetchAnggotaPaginated,
   type StatusFilter,
 } from "@/modules";
 import { fetchMe, ME_KEY } from "@/modules/auth.module";
@@ -92,16 +92,24 @@ export function AnggotaTable() {
 
   const filter = { q: debouncedQ, status };
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...ANGGOTA_KEY, filter],
-    queryFn: () => fetchAnggota(filter),
+    queryFn: ({ pageParam }) => fetchAnggotaPaginated({ ...filter, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: (target: Anggota) => deleteAnggota(target.id),
@@ -134,7 +142,7 @@ export function AnggotaTable() {
           <p className="text-xs text-zinc-400">
             {isPending
               ? "Memuat data…"
-              : `${data.length} anggota${hasFilter ? " · terfilter" : ""}`}
+              : `${total} anggota${hasFilter ? " · terfilter" : ""}`}
           </p>
           <Button size="sm" onClick={openCreate}>
             <PlusIcon />
@@ -174,7 +182,7 @@ export function AnggotaTable() {
       {/* Listview */}
       <div
         className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
-        data-fetching={isFetching && !isPending}
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
       >
         <div className="flex flex-col gap-2">
           {isPending ? (
@@ -187,17 +195,31 @@ export function AnggotaTable() {
             ))
           ) : isError ? (
             <ErrorState onRetry={refetch} />
-          ) : data.length === 0 ? (
+          ) : allItems.length === 0 ? (
             <EmptyState hasFilter={hasFilter} onCreate={openCreate} />
           ) : (
-            data.map((a) => (
-              <AnggotaCard
-                key={a.id}
-                anggota={a}
-                onEdit={openEdit}
-                onDelete={setDeleteTarget}
-              />
-            ))
+            <>
+              {allItems.map((a) => (
+                <AnggotaCard
+                  key={a.id}
+                  anggota={a}
+                  onEdit={openEdit}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

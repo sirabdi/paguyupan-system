@@ -38,7 +38,13 @@ type Props = {
   iuran: IuranItem[];
 };
 
-export function MobileGuestShell({ firstName, role, myAnggotaId, profile, iuran }: Props) {
+export function MobileGuestShell({
+  firstName,
+  role,
+  myAnggotaId,
+  profile,
+  iuran,
+}: Props) {
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
 
@@ -52,7 +58,7 @@ export function MobileGuestShell({ firstName, role, myAnggotaId, profile, iuran 
   });
 
   const featured = allNews[0] ?? null;
-  const rest = allNews.slice(1);
+  const rest = allNews.slice(1, 5);
   const filtered = q.trim()
     ? allNews.filter(
         (n) =>
