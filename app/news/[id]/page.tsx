@@ -5,7 +5,7 @@ import { ChevronLeftIcon, ClockIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/utils";
 import { KATEGORI_LABEL, type KategoriNews } from "@/modules";
-import { ShareButton } from "./_share-button";
+import { ShareButton } from "@/components/molecules";
 
 type PageProps = { params: Promise<{ id: string }> };
 

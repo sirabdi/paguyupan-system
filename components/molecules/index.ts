@@ -7,3 +7,4 @@ export * from "./logout-button.molecule";
 export * from "./news-admin-card.molecule";
 export * from "./news-card.molecule";
 export * from "./search.molecule";
+export * from "./share-button.molecule";
