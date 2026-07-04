@@ -14,6 +14,8 @@ export interface News {
   penulis: NewsPenulis;
   createdAt: string;
   updatedAt: string;
+  liked: boolean;
+  _count: { komentar: number; like: number };
 }
 
 export interface NewsInput {

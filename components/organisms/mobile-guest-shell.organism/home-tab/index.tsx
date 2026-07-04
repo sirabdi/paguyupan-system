@@ -13,6 +13,7 @@ import {
 type Props = {
   firstName: string;
   role: string;
+  myAnggotaId: number;
   isPending: boolean;
   isError: boolean;
   filtered: News[];
@@ -25,6 +26,7 @@ type Props = {
 export function HomeTab({
   firstName,
   role,
+  myAnggotaId,
   isPending,
   isError,
   filtered,
@@ -80,7 +82,7 @@ export function HomeTab({
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
                   Paling Baru
                 </p>
-                <FeaturedCard news={featured} />
+                <FeaturedCard news={featured} myAnggotaId={myAnggotaId} />
               </div>
             )}
 
@@ -90,7 +92,7 @@ export function HomeTab({
               </p>
               <div className="flex flex-col gap-3">
                 {(q ? filtered : rest).map((n) => (
-                  <SmallCard key={n.id} news={n} />
+                  <SmallCard key={n.id} news={n} myAnggotaId={myAnggotaId} />
                 ))}
               </div>
             </div>

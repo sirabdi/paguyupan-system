@@ -33,6 +33,8 @@ model Anggota {
   notifikasi   Notifikasi[]
   otpCodes     OtpCode[]
   sessions     UserSession[]
+  komentar     Komentar[]
+  like         Like[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -60,12 +62,44 @@ model News {
   bannerUrl String?  @map("banner_url")
   penulis   Anggota  @relation(fields: [penulisId], references: [id])
   penulisId Int      @map("penulis_id")
+  komentar  Komentar[]
+  like      Like[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([penulisId])
   @@map("news")
+}
+
+model Komentar {
+  id        Int       @id @default(autoincrement())
+  news      News      @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  newsId    Int       @map("news_id")
+  penulis   Anggota   @relation(fields: [penulisId], references: [id], onDelete: Cascade)
+  penulisId Int       @map("penulis_id")
+  konten    String    @db.Text
+  parent    Komentar? @relation("KomentarReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  Int?      @map("parent_id")
+  replies   Komentar[] @relation("KomentarReplies")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([newsId, parentId])
+  @@map("komentar")
+}
+
+model Like {
+  id        Int     @id @default(autoincrement())
+  news      News    @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  newsId    Int     @map("news_id")
+  anggota   Anggota @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int     @map("anggota_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([newsId, anggotaId])
+  @@map("like")
 }
 
 model Iuran {

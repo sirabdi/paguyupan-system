@@ -7,7 +7,7 @@ import { InboxIcon } from "lucide-react";
 import { fetchNews, NEWS_KEY } from "@/modules";
 import { SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
 
-export function NewsTab({ role }: { role: string }) {
+export function NewsTab({ role, myAnggotaId }: { role: string; myAnggotaId: number }) {
   const { data: allNews = [], isPending } = useQuery({
     queryKey: NEWS_KEY,
     queryFn: () => fetchNews(),
@@ -63,7 +63,7 @@ export function NewsTab({ role }: { role: string }) {
         ) : (
           <div className="flex flex-col gap-3">
             {filtered.map((n) => (
-              <SmallCard key={n.id} news={n} />
+              <SmallCard key={n.id} news={n} myAnggotaId={myAnggotaId} />
             ))}
           </div>
         )}

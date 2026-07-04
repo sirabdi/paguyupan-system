@@ -33,11 +33,12 @@ export type IuranItem = {
 type Props = {
   firstName: string;
   role: string;
+  myAnggotaId: number;
   profile: ProfileData;
   iuran: IuranItem[];
 };
 
-export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
+export function MobileGuestShell({ firstName, role, myAnggotaId, profile, iuran }: Props) {
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
 
@@ -66,6 +67,7 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
         <HomeTab
           firstName={firstName}
           role={role}
+          myAnggotaId={myAnggotaId}
           isPending={isPending}
           isError={isError}
           filtered={filtered}
@@ -76,7 +78,7 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
         />
       )}
 
-      {tab === "news" && <NewsTab role={role} />}
+      {tab === "news" && <NewsTab role={role} myAnggotaId={myAnggotaId} />}
 
       {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}
 

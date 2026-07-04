@@ -41,6 +41,8 @@ export default async function NewsEditPage({ params }: PageProps) {
     ...raw,
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
+    liked: false,
+    _count: { komentar: 0, like: 0 },
   };
 
   return (
