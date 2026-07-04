@@ -36,13 +36,7 @@ import {
   type StatusAnggota,
 } from "@/modules/anggota.module/types";
 import { useAnggotaForm } from "@/modules/anggota.module/anggota.form";
-
-const ROLE_LABEL: Record<Role, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+import { ROLE_LABEL } from "@/utils";
 
 export function AnggotaFormDialog({
   open,
@@ -86,7 +80,7 @@ export function AnggotaFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !saving && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-lg">
         <form
           onSubmit={handleSubmit((data) => {
             mutation.mutate({
@@ -99,9 +93,9 @@ export function AnggotaFormDialog({
               ...(data.password ? { password: data.password } : {}),
             });
           })}
-          className="grid gap-4"
+          className="flex min-h-0 flex-1 flex-col gap-4"
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0">
             <DialogTitle>
               {isEdit ? "Edit Anggota" : "Tambah Anggota"}
             </DialogTitle>
@@ -112,6 +106,7 @@ export function AnggotaFormDialog({
             </DialogDescription>
           </DialogHeader>
 
+          <div className="-mx-1 grid min-h-0 flex-1 gap-4 overflow-y-auto px-1">
           <div className="grid gap-2">
             <Label htmlFor="nama">
               Nama <span className="text-destructive">*</span>
@@ -248,8 +243,9 @@ export function AnggotaFormDialog({
               {...register("alamat")}
             />
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button
               type="button"
               variant="outline"

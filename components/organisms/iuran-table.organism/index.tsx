@@ -1,14 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle2Icon,
-  InboxIcon,
-  RefreshCwIcon,
-  ReceiptIcon,
-  WalletIcon,
-} from "lucide-react";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { InboxIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -20,52 +14,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/atoms";
 
 import {
   IURAN_KEY,
   STATUS_IURAN_LABEL,
   bayarIuran,
-  fetchIuran,
+  fetchIuranPaginated,
   type Iuran,
   type StatusIuranFilter,
 } from "@/modules";
-import { formatDate, formatPeriode, formatRupiah } from "@/utils";
+import { formatPeriode, generatePeriodes } from "@/utils";
+import { IuranCard, IuranSettingDialog } from "@/components/molecules";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Hasilkan daftar periode YYYY-MM dari bulan ini mundur sejumlah `count`. */
-function generatePeriodes(count = 13): string[] {
-  const result: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    result.push(`${y}-${m}`);
-  }
-  return result;
-}
 
 const PERIODES = generatePeriodes(13);
 
@@ -74,6 +43,27 @@ const STATUS_FILTER_LABEL: Record<StatusIuranFilter, string> = {
   BELUM_BAYAR: STATUS_IURAN_LABEL.BELUM_BAYAR,
   LUNAS: STATUS_IURAN_LABEL.LUNAS,
 };
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <p className="text-sm">Gagal memuat data iuran.</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCwIcon />
+        Coba lagi
+      </Button>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <InboxIcon className="size-10" />
+      <p className="text-sm">Tidak ada data iuran untuk periode ini.</p>
+    </div>
+  );
+}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -87,22 +77,31 @@ export function IuranTable({ canBayar }: Props) {
 
   const [periode, setPeriode] = React.useState<string>(PERIODES[0]);
   const [status, setStatus] = React.useState<StatusIuranFilter>("ALL");
+  const [settingOpen, setSettingOpen] = React.useState(false);
   const [konfirmasiTarget, setKonfirmasiTarget] = React.useState<Iuran | null>(
     null,
   );
 
   const filter = { periode, status };
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...IURAN_KEY, filter],
-    queryFn: () => fetchIuran(filter),
+    queryFn: ({ pageParam }) => fetchIuranPaginated({ ...filter, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const bayarMutation = useMutation({
     mutationFn: (iuran: Iuran) => bayarIuran(iuran.id),
@@ -116,24 +115,29 @@ export function IuranTable({ canBayar }: Props) {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const sudahBayar = data.filter((d) => d.status === "LUNAS").length;
-  const belumBayar = data.filter((d) => d.status === "BELUM_BAYAR").length;
+  const sudahBayar = allItems.filter((d) => d.status === "LUNAS").length;
+  const belumBayar = allItems.filter((d) => d.status === "BELUM_BAYAR").length;
   const memproses = bayarMutation.isPending;
 
   return (
     <>
-      <Card>
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <WalletIcon className="size-4" />
-            Iuran
-          </CardTitle>
-          <CardDescription>
+      {/* Header: ringkasan + filter */}
+      <div className="shrink-0 bg-white px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-xs text-zinc-400">
             {isPending
               ? "Memuat data…"
-              : `${data.length} tagihan · ${sudahBayar} lunas · ${belumBayar} belum bayar`}
-          </CardDescription>
-          <CardAction>
+              : `${total} tagihan · ${sudahBayar} lunas · ${belumBayar} belum`}
+          </p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Atur iuran default"
+              onClick={() => setSettingOpen(true)}
+            >
+              <SettingsIcon />
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -143,164 +147,93 @@ export function IuranTable({ canBayar }: Props) {
               <RefreshCwIcon className={isFetching ? "animate-spin" : ""} />
               Refresh
             </Button>
-          </CardAction>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-4">
-          {/* Filter */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Select value={periode} onValueChange={(v) => v && setPeriode(v)}>
-              <SelectTrigger className="sm:w-52">
-                <SelectValue>
-                  {(v) => formatPeriode((v as string) ?? PERIODES[0])}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODES.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {formatPeriode(p)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(v as StatusIuranFilter)}
-            >
-              <SelectTrigger className="sm:w-44">
-                <SelectValue>
-                  {(v) =>
-                    STATUS_FILTER_LABEL[(v as StatusIuranFilter) ?? "ALL"]
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{STATUS_FILTER_LABEL.ALL}</SelectItem>
-                <SelectItem value="BELUM_BAYAR">
-                  {STATUS_FILTER_LABEL.BELUM_BAYAR}
-                </SelectItem>
-                <SelectItem value="LUNAS">
-                  {STATUS_FILTER_LABEL.LUNAS}
-                </SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+        </div>
 
-          {/* Tabel */}
-          <div
-            className="rounded-lg border transition-opacity data-[fetching=true]:opacity-60"
-            data-fetching={isFetching && !isPending}
+        <div className="mt-3 flex flex-col gap-2">
+          <Select value={periode} onValueChange={(v) => v && setPeriode(v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(v) => formatPeriode((v as string) ?? PERIODES[0])}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {PERIODES.map((p) => (
+                <SelectItem key={p} value={p}>
+                  {formatPeriode(p)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(v as StatusIuranFilter)}
           >
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Anggota</TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    Periode
-                  </TableHead>
-                  <TableHead>Jumlah</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">
-                    Tgl Bayar
-                  </TableHead>
-                  {canBayar && (
-                    <TableHead className="w-28 text-center">Aksi</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isPending ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: canBayar ? 6 : 5 }).map((__, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className="h-4 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : isError ? (
-                  <TableRow>
-                    <TableCell colSpan={canBayar ? 6 : 5}>
-                      <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                        <p>Gagal memuat data iuran.</p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => refetch()}
-                        >
-                          <RefreshCwIcon />
-                          Coba lagi
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : data.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={canBayar ? 6 : 5}>
-                      <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                        <InboxIcon className="size-8" />
-                        <p>Tidak ada data iuran untuk periode ini.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data.map((iuran) => (
-                    <TableRow key={iuran.id}>
-                      <TableCell className="font-medium">
-                        {iuran.anggota.nama}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {formatPeriode(iuran.periode)}
-                      </TableCell>
-                      <TableCell>{formatRupiah(iuran.jumlah)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            iuran.status === "LUNAS" ? "default" : "secondary"
-                          }
-                        >
-                          {iuran.status === "LUNAS" ? (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2Icon className="size-3" />
-                              {STATUS_IURAN_LABEL.LUNAS}
-                            </span>
-                          ) : (
-                            STATUS_IURAN_LABEL.BELUM_BAYAR
-                          )}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {formatDate(iuran.tanggalBayar)}
-                      </TableCell>
-                      {canBayar && (
-                        <TableCell className="text-center">
-                          {iuran.status === "BELUM_BAYAR" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setKonfirmasiTarget(iuran)}
-                              disabled={memproses}
-                            >
-                              <ReceiptIcon className="size-3.5" />
-                              Bayar
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              —
-                            </span>
-                          )}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(v) => STATUS_FILTER_LABEL[(v as StatusIuranFilter) ?? "ALL"]}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{STATUS_FILTER_LABEL.ALL}</SelectItem>
+              <SelectItem value="BELUM_BAYAR">
+                {STATUS_FILTER_LABEL.BELUM_BAYAR}
+              </SelectItem>
+              <SelectItem value="LUNAS">{STATUS_FILTER_LABEL.LUNAS}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Listview */}
+      <div
+        className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
+      >
+        <div className="flex flex-col gap-2">
+          {isPending ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-white p-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="mt-2 h-3 w-24" />
+                <Skeleton className="mt-3 h-5 w-full" />
+              </div>
+            ))
+          ) : isError ? (
+            <ErrorState onRetry={refetch} />
+          ) : allItems.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <>
+              {allItems.map((iuran) => (
+                <IuranCard
+                  key={iuran.id}
+                  iuran={iuran}
+                  canBayar={canBayar}
+                  onBayar={setKonfirmasiTarget}
+                  disabled={memproses}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Dialog atur iuran default */}
+      <IuranSettingDialog open={settingOpen} onOpenChange={setSettingOpen} />
 
       {/* Dialog konfirmasi bayar */}
       <AlertDialog

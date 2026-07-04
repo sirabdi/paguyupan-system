@@ -1,3 +1,5 @@
+import { fetchClient, toError } from "@/lib/fetch-client";
+
 export type Role = "ADMIN" | "SEKERTARIS" | "BENDAHARA" | "ANGGOTA";
 
 export interface AuthUser {
@@ -7,12 +9,8 @@ export interface AuthUser {
   role: Role;
 }
 
-async function toError(res: Response, fallback: string): Promise<Error> {
-  const body = (await res.json().catch(() => null)) as { error?: string } | null;
-  return new Error(body?.error ?? fallback);
-}
-
 export async function login(email: string, password: string): Promise<AuthUser> {
+  // Login tidak pakai fetchClient — 401 di sini berarti salah password, bukan session expired
   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,7 +25,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function fetchMe(): Promise<AuthUser> {
-  const res = await fetch("/api/auth/me");
+  const res = await fetchClient("/api/auth/me");
   if (!res.ok) throw await toError(res, "Gagal memuat profil");
   return res.json();
 }

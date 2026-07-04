@@ -2,7 +2,7 @@
 
 import { InboxIcon } from "lucide-react";
 
-import { type News } from "@/modules";
+import { type News, type Notifikasi } from "@/modules";
 import {
   FeaturedCard,
   SmallCard,
@@ -20,6 +20,7 @@ type Props = {
   rest: News[];
   q: string;
   onQChange: (q: string) => void;
+  onNotifClick: (notif: Notifikasi) => void;
 };
 
 export function HomeTab({
@@ -32,6 +33,7 @@ export function HomeTab({
   rest,
   q,
   onQChange,
+  onNotifClick,
 }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -41,7 +43,7 @@ export function HomeTab({
             <h1 className="text-xl font-bold text-zinc-900">Berita Terkini</h1>
             <p className="text-xs text-zinc-400">Hai, {firstName}</p>
           </div>
-          <HeaderActions role={role} />
+          <HeaderActions role={role} onNotifClick={onNotifClick} />
         </div>
 
         <SearchBar

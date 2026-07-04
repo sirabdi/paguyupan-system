@@ -2,17 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  EllipsisIcon,
-  InboxIcon,
-  NewspaperIcon,
-  PencilIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  SearchIcon,
-  Trash2Icon,
-} from "lucide-react";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { InboxIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -24,47 +15,50 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Input,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/atoms";
 
-import { NEWS_KEY, deleteNews, fetchNews, type News } from "@/modules";
-import { formatDate, stripHtml } from "@/utils";
+import { NEWS_KEY, deleteNews, fetchNewsPaginated, type News } from "@/modules";
+import { NewsAdminCard } from "@/components/molecules";
+import { useDebounced } from "@/utils";
 
 type Props = { canEdit: boolean };
 
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <p className="text-sm">Gagal memuat berita.</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCwIcon /> Coba lagi
+      </Button>
+    </div>
+  );
+}
 
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+function EmptyState({
+  hasQuery,
+  canEdit,
+  onCreate,
+}: {
+  hasQuery: boolean;
+  canEdit: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <InboxIcon className="size-10" />
+      <p className="text-sm">
+        {hasQuery ? "Tidak ada berita yang cocok." : "Belum ada berita."}
+      </p>
+      {canEdit && !hasQuery && (
+        <Button variant="outline" size="sm" onClick={onCreate}>
+          <PlusIcon /> Tambah berita pertama
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function NewsTable({ canEdit }: Props) {
@@ -76,16 +70,24 @@ export function NewsTable({ canEdit }: Props) {
   const [deleteTarget, setDeleteTarget] = React.useState<News | null>(null);
 
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...NEWS_KEY, debouncedQ],
-    queryFn: () => fetchNews(debouncedQ),
+    queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: (target: News) => deleteNews(target.id),
@@ -100,160 +102,84 @@ export function NewsTable({ canEdit }: Props) {
   const deleting = deleteMutation.isPending;
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          <NewspaperIcon className="size-4" />
-          Berita
-        </CardTitle>
-        <CardDescription>
-          {isPending
-            ? "Memuat data…"
-            : `${data.length} berita${q ? " (terfilter)" : ""}`}
-        </CardDescription>
-        {canEdit && (
-          <CardAction>
-            <Button onClick={() => router.push("/news/create")}>
+    <>
+      {/* Header: aksi + pencarian */}
+      <div className="shrink-0 bg-white px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-zinc-400">
+            {isPending
+              ? "Memuat data…"
+              : `${total} berita${q ? " · terfilter" : ""}`}
+          </p>
+          {canEdit && (
+            <Button size="sm" onClick={() => router.push("/news/create")}>
               <PlusIcon />
-              Tambah Berita
+              Tambah
             </Button>
-          </CardAction>
-        )}
-      </CardHeader>
+          )}
+        </div>
 
-      <CardContent className="flex flex-col gap-4">
-        {/* Pencarian */}
-        <div className="relative max-w-sm">
+        <div className="relative mt-3">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari judul berita…"
             className="pl-8"
+            aria-label="Cari judul berita"
           />
         </div>
+      </div>
 
-        {/* Tabel */}
-        <div
-          className="rounded-lg border transition-opacity data-[fetching=true]:opacity-60"
-          data-fetching={isFetching && !isPending}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Judul</TableHead>
-                <TableHead className="hidden md:table-cell">
-                  Ringkasan
-                </TableHead>
-                <TableHead>Penulis</TableHead>
-                <TableHead className="hidden lg:table-cell">Tanggal</TableHead>
-                {canEdit && (
-                  <TableHead className="w-24 text-center">Aksi</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isPending ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: canEdit ? 5 : 4 }).map((__, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : isError ? (
-                <TableRow>
-                  <TableCell colSpan={canEdit ? 5 : 4}>
-                    <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                      <p>Gagal memuat berita.</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetch()}
-                      >
-                        <RefreshCwIcon /> Coba lagi
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : data.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={canEdit ? 5 : 4}>
-                    <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                      <InboxIcon className="size-8" />
-                      <p>
-                        {q
-                          ? "Tidak ada berita yang cocok."
-                          : "Belum ada berita."}
-                      </p>
-                      {canEdit && !q && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push("/news/create")}
-                        >
-                          <PlusIcon /> Tambah berita pertama
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.map((n) => (
-                  <TableRow key={n.id}>
-                    <TableCell className="font-medium max-w-xs truncate">
-                      {n.judul}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell max-w-sm text-muted-foreground whitespace-normal">
-                      <span className="line-clamp-1">
-                        {stripHtml(n.konten)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm">{n.penulis.nama}</span>
-                        <Badge variant="secondary" className="w-fit text-xs">
-                          {ROLE_LABEL[n.penulis.role] ?? n.penulis.role}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {formatDate(n.createdAt)}
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell className="w-24 text-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            render={<Button variant="ghost" size="icon-sm" />}
-                            aria-label={`Aksi untuk ${n.judul}`}
-                          >
-                            <EllipsisIcon />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/news/edit/${n.id}`)}
-                            >
-                              <PencilIcon /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => setDeleteTarget(n)}
-                            >
-                              <Trash2Icon /> Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
+      {/* Listview */}
+      <div
+        className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
+      >
+        <div className="flex flex-col gap-2">
+          {isPending ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-white p-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="mt-2 h-3 w-full" />
+                <Skeleton className="mt-2 h-3 w-28" />
+              </div>
+            ))
+          ) : isError ? (
+            <ErrorState onRetry={refetch} />
+          ) : allItems.length === 0 ? (
+            <EmptyState
+              hasQuery={Boolean(q)}
+              canEdit={canEdit}
+              onCreate={() => router.push("/news/create")}
+            />
+          ) : (
+            <>
+              {allItems.map((n) => (
+                <NewsAdminCard
+                  key={n.id}
+                  news={n}
+                  canEdit={canEdit}
+                  onEdit={(x) => router.push(`/news/edit/${x.id}`)}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
               )}
-            </TableBody>
-          </Table>
+            </>
+          )}
         </div>
-      </CardContent>
+      </div>
 
       {/* Konfirmasi hapus */}
       <AlertDialog
@@ -277,9 +203,7 @@ export function NewsTable({ canEdit }: Props) {
             <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              onClick={() =>
-                deleteTarget && deleteMutation.mutate(deleteTarget)
-              }
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget)}
               disabled={deleting}
             >
               {deleting ? "Menghapus…" : "Hapus"}
@@ -287,6 +211,6 @@ export function NewsTable({ canEdit }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }

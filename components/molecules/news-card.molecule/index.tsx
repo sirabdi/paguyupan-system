@@ -1,27 +1,79 @@
 "use client";
 
-import * as React from "react";
-import { ChevronLeft, ClockIcon, NewspaperIcon } from "lucide-react";
+import Link from "next/link";
+import {
+  ClockIcon,
+  HeartIcon,
+  MessageCircleIcon,
+  NewspaperIcon,
+} from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { type News } from "@/modules";
+import {
+  type News,
+  type KategoriNews,
+  KATEGORI_LABEL,
+  NEWS_KEY,
+  toggleLike,
+} from "@/modules";
 import { formatDate, stripHtml } from "@/utils";
 
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
+// ─── KategoriTag ──────────────────────────────────────────────────────────────
+
+const KATEGORI_STYLE: Record<KategoriNews, string> = {
+  UNDANGAN: "bg-purple-50 text-purple-600",
+  BERITA: "bg-blue-50 text-blue-600",
+  PENGUMUMAN: "bg-amber-50 text-amber-600",
 };
 
+export function KategoriTag({ kategori }: { kategori: KategoriNews }) {
+  return (
+    <span
+      className={`inline-block w-fit rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${KATEGORI_STYLE[kategori]}`}
+    >
+      {KATEGORI_LABEL[kategori]}
+    </span>
+  );
+}
+
+// ─── Shared like mutation ─────────────────────────────────────────────────────
+
+function useLikeMutation(newsId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => toggleLike(newsId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: NEWS_KEY });
+      const prev = queryClient.getQueryData<News[]>(NEWS_KEY);
+      queryClient.setQueryData<News[]>(NEWS_KEY, (old) =>
+        old?.map((n) =>
+          n.id === newsId
+            ? {
+                ...n,
+                liked: !n.liked,
+                _count: {
+                  ...n._count,
+                  like: n._count.like + (n.liked ? -1 : 1),
+                },
+              }
+            : n,
+        ),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => queryClient.setQueryData(NEWS_KEY, ctx?.prev),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: NEWS_KEY }),
+  });
+}
+
+// ─── Cards ────────────────────────────────────────────────────────────────────
+
 export function FeaturedCard({ news }: { news: News }) {
-  const [open, setOpen] = React.useState(false);
+  const likeMutation = useLikeMutation(news.id);
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full overflow-hidden rounded-sm bg-white text-left shadow-sm ring-1 ring-zinc-100"
-      >
+    <div className="w-full overflow-hidden rounded-sm bg-white text-left shadow-sm ring-1 ring-zinc-100">
+      <Link href={`/guest/news/${news.id}`} className="block text-left">
         {news.bannerUrl ? (
           <img
             src={news.bannerUrl}
@@ -29,14 +81,17 @@ export function FeaturedCard({ news }: { news: News }) {
             className="h-40 w-full object-cover"
           />
         ) : (
-          <div className="flex h-40 items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100">
+          <div className="flex h-40 items-center justify-center bg-linear-to-br from-blue-100 to-indigo-100">
             <NewspaperIcon className="size-10 text-blue-300" />
           </div>
         )}
         <div className="p-4 flex flex-col gap-1">
-          <span className="mb-1.5 w-fit inline-block rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-green-600">
-            Paling Baru
-          </span>
+          <div className="mb-1.5 flex items-center gap-1.5">
+            <KategoriTag kategori={news.kategori} />
+            <span className="inline-block w-fit rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-green-600">
+              Paling Baru
+            </span>
+          </div>
           <h3 className="line-clamp-2 text-sm font-bold leading-snug text-zinc-900">
             {news.judul}
           </h3>
@@ -47,104 +102,83 @@ export function FeaturedCard({ news }: { news: News }) {
             <span>{news.penulis.nama}</span>
           </div>
         </div>
-      </button>
-      {open && <NewsDetailSheet news={news} onClose={() => setOpen(false)} />}
-    </>
+      </Link>
+      <div className="flex items-center gap-4 border-t border-zinc-50 px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => likeMutation.mutate()}
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-colors"
+        >
+          <HeartIcon
+            className={`size-3.5 transition-colors ${news.liked ? "fill-red-500 text-red-500" : ""}`}
+          />
+          <span>{news._count.like} Like</span>
+        </button>
+        <Link
+          href={`/guest/news/${news.id}?comments=1`}
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-blue-500 transition-colors"
+        >
+          <MessageCircleIcon className="size-3.5" />
+          <span>{news._count.komentar} Komentar</span>
+        </Link>
+      </div>
+    </div>
   );
 }
 
 export function SmallCard({ news }: { news: News }) {
-  const [open, setOpen] = React.useState(false);
+  const likeMutation = useLikeMutation(news.id);
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex w-full gap-3 rounded-sm bg-white text-left shadow-sm ring-1 ring-zinc-100 transition-colors hover:bg-zinc-50"
+    <div className="w-full overflow-hidden rounded-sm bg-white shadow-sm ring-1 ring-zinc-100">
+      <Link
+        href={`/guest/news/${news.id}`}
+        className="flex w-full gap-3 text-left transition-colors hover:bg-zinc-50"
       >
         {news.bannerUrl ? (
           <img
             src={news.bannerUrl}
             alt={news.judul}
-            className="size-24 shrink-0 rounded-l-sm object-cover"
+            className="size-32 shrink-0 rounded-tl-sm object-cover"
           />
         ) : (
-          <div className="flex size-24 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br from-blue-100 to-indigo-100">
+          <div className="flex size-32 shrink-0 items-center justify-center bg-linear-to-br from-blue-100 to-indigo-100">
             <NewspaperIcon className="size-6 text-blue-300" />
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
-          <div>
-            <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900">
-              {news.judul}
-            </h3>
-            <p className="line-clamp-1 text-[11px] text-zinc-400">
-              {stripHtml(news.konten)}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
-            <span>{news.penulis.nama}</span>
-            <span>·</span>
-            <span>{formatDate(news.createdAt)}</span>
-          </div>
-        </div>
-      </button>
-      {open && <NewsDetailSheet news={news} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-function NewsDetailSheet({
-  news,
-  onClose,
-}: {
-  news: News;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="absolute inset-0 z-50 flex flex-col bg-white"
-      style={{ borderRadius: "inherit" }}
-    >
-      <div className="flex items-center gap-3 border-b border-zinc-100 px-5 py-4">
-        <button
-          onClick={onClose}
-          className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <span className="truncate text-sm font-semibold text-zinc-800">
-          {news.judul}
-        </span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {news.bannerUrl && (
-          <img
-            src={news.bannerUrl}
-            alt={news.judul}
-            className="h-48 w-full object-cover"
-          />
-        )}
-        <div className="px-5 py-4">
-          <h2 className="text-lg font-bold leading-snug text-zinc-900">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pr-3">
+          <KategoriTag kategori={news.kategori} />
+          <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900">
             {news.judul}
-          </h2>
-          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
-            <ClockIcon className="size-3" />
-            <span>{formatDate(news.createdAt)}</span>
-            <span>·</span>
+          </h3>
+          <p className="line-clamp-1 text-[11px] text-zinc-400">
+            {stripHtml(news.konten)}
+          </p>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-400">
             <span>{news.penulis.nama}</span>
             <span>·</span>
-            <span className="text-blue-500">
-              {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
-            </span>
+            <span>{formatDate(news.createdAt)}</span>
           </div>
-          <div
-            className="mt-4 text-sm leading-relaxed text-zinc-700 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-zinc-900 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-zinc-900 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:border-blue-300 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-500 [&_img]:mt-3 [&_img]:rounded-sm"
-            dangerouslySetInnerHTML={{ __html: news.konten }}
-          />
         </div>
+      </Link>
+      <div className="flex items-center gap-4 border-t border-zinc-50 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => likeMutation.mutate()}
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-colors"
+        >
+          <HeartIcon
+            className={`size-3.5 ${news.liked ? "fill-red-500 text-red-500" : ""}`}
+          />
+          <span>{news._count.like} Like</span>
+        </button>
+        <Link
+          href={`/guest/news/${news.id}?comments=1`}
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-blue-500 transition-colors"
+        >
+          <MessageCircleIcon className="size-3" />
+          <span>{news._count.komentar} Komentar</span>
+        </Link>
       </div>
     </div>
   );

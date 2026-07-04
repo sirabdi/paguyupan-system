@@ -32,6 +32,9 @@ model Anggota {
   news         News[]
   notifikasi   Notifikasi[]
   otpCodes     OtpCode[]
+  sessions     UserSession[]
+  komentar     Komentar[]
+  like         Like[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -53,18 +56,58 @@ model OtpCode {
 }
 
 model News {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   judul     String
-  konten    String   @db.Text
-  bannerUrl String?  @map("banner_url")
-  penulis   Anggota  @relation(fields: [penulisId], references: [id])
-  penulisId Int      @map("penulis_id")
+  konten    String       @db.Text
+  bannerUrl String?      @map("banner_url")
+  kategori  KategoriNews @default(BERITA)
+  penulis   Anggota      @relation(fields: [penulisId], references: [id])
+  penulisId Int          @map("penulis_id")
+  komentar  Komentar[]
+  like      Like[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([penulisId])
+  @@index([kategori])
   @@map("news")
+}
+
+enum KategoriNews {
+  UNDANGAN
+  BERITA
+  PENGUMUMAN
+}
+
+model Komentar {
+  id        Int       @id @default(autoincrement())
+  news      News      @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  newsId    Int       @map("news_id")
+  penulis   Anggota   @relation(fields: [penulisId], references: [id], onDelete: Cascade)
+  penulisId Int       @map("penulis_id")
+  konten    String    @db.Text
+  parent    Komentar? @relation("KomentarReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  Int?      @map("parent_id")
+  replies   Komentar[] @relation("KomentarReplies")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([newsId, parentId])
+  @@map("komentar")
+}
+
+model Like {
+  id        Int     @id @default(autoincrement())
+  news      News    @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  newsId    Int     @map("news_id")
+  anggota   Anggota @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int     @map("anggota_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([newsId, anggotaId])
+  @@map("like")
 }
 
 model Iuran {
@@ -114,6 +157,7 @@ model Notifikasi {
   pesan       String    @db.Text
   dibaca      Boolean   @default(false)
   referensiId Int       @map("referensi_id")
+  newsId      Int?      @map("news_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -125,4 +169,38 @@ model Notifikasi {
 enum TipeNotif {
   IURAN_TAGIHAN
   IURAN_LUNAS
+  KOMENTAR_ARTIKEL
+  KOMENTAR_BALASAN
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  anggota   Anggota  @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int      @map("anggota_id")
+  expiresAt DateTime @map("expires_at")
+  kicked    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([anggotaId])
+  @@map("user_session")
+}
+
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  ip        String
+  email     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ip, createdAt])
+  @@index([email, createdAt])
+  @@map("login_attempt")
+}
+
+// Konfigurasi aplikasi (key-value), mis. nominal iuran bulanan default.
+model Konfigurasi {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("konfigurasi")
 }

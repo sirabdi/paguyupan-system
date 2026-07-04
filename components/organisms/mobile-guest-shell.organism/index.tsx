@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchNews, NEWS_KEY } from "@/modules";
+import { fetchNews, NEWS_KEY, type Notifikasi } from "@/modules";
 import { HomeTab } from "./home-tab";
 import { NewsTab } from "./news-tab";
 import { IuranTab } from "./iuran-tab";
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
+  const router = useRouter();
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
 
@@ -51,7 +53,7 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
   });
 
   const featured = allNews[0] ?? null;
-  const rest = allNews.slice(1);
+  const rest = allNews.slice(1, 5);
   const filtered = q.trim()
     ? allNews.filter(
         (n) =>
@@ -59,6 +61,17 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
           n.penulis.nama.toLowerCase().includes(q.toLowerCase()),
       )
     : allNews;
+
+  function handleNotifClick(notif: Notifikasi) {
+    const articleId = notif.newsId ?? notif.referensiId;
+    const komentarId =
+      notif.tipe === "KOMENTAR_BALASAN" ? notif.referensiId : null;
+    router.push(
+      komentarId
+        ? `/guest/news/${articleId}?komentar=${komentarId}`
+        : `/guest/news/${articleId}`,
+    );
+  }
 
   return (
     <div className="relative flex w-full md:w-97.5 flex-col overflow-hidden bg-zinc-50 h-screen">
@@ -73,10 +86,13 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
           rest={rest}
           q={q}
           onQChange={setQ}
+          onNotifClick={handleNotifClick}
         />
       )}
 
-      {tab === "news" && <NewsTab role={role} />}
+      {tab === "news" && (
+        <NewsTab role={role} onNotifClick={handleNotifClick} />
+      )}
 
       {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}
 

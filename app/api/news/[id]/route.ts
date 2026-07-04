@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireNewsEditor } from "@/lib/auth";
+import type { KategoriNews } from "@/modules/news.module";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const SELECT_NEWS = {
-  id: true,
-  judul: true,
-  konten: true,
-  bannerUrl: true,
-  createdAt: true,
-  updatedAt: true,
-  penulis: { select: { id: true, nama: true, role: true } },
-} as const;
+const VALID_KATEGORI: KategoriNews[] = ["UNDANGAN", "BERITA", "PENGUMUMAN"];
+
+function selectNews(anggotaId: number) {
+  return {
+    id: true,
+    judul: true,
+    konten: true,
+    bannerUrl: true,
+    kategori: true,
+    createdAt: true,
+    updatedAt: true,
+    penulis: { select: { id: true, nama: true, role: true } },
+    _count: { select: { komentar: { where: { parentId: null } }, like: true } },
+    like: { where: { anggotaId }, select: { id: true } },
+  } as const;
+}
 
 // GET /api/news/:id  — semua role yang sudah login
 export async function GET(_req: Request, { params }: RouteContext) {
@@ -25,10 +33,11 @@ export async function GET(_req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "ID tidak valid" }, { status: 400 });
   }
 
-  const news = await prisma.news.findUnique({ where: { id: newsId }, select: SELECT_NEWS });
-  if (!news) return NextResponse.json({ error: "News tidak ditemukan" }, { status: 404 });
+  const raw = await prisma.news.findUnique({ where: { id: newsId }, select: selectNews(auth.session.anggotaId) });
+  if (!raw) return NextResponse.json({ error: "News tidak ditemukan" }, { status: 404 });
 
-  return NextResponse.json(news);
+  const { like, ...rest } = raw;
+  return NextResponse.json({ ...rest, liked: like.length > 0 });
 }
 
 // PUT /api/news/:id  — hanya Admin & Sekertaris
@@ -46,7 +55,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 }); }
 
-  const { judul, konten, bannerUrl } = (body ?? {}) as Record<string, unknown>;
+  const { judul, konten, bannerUrl, kategori } = (body ?? {}) as Record<string, unknown>;
 
   try {
     const news = await prisma.news.update({
@@ -54,12 +63,15 @@ export async function PUT(req: Request, { params }: RouteContext) {
       data: {
         ...(typeof judul === "string" && judul.trim() ? { judul: judul.trim() } : {}),
         ...(typeof konten === "string" && konten.trim() ? { konten: konten.trim() } : {}),
-        // null eksplisit = hapus banner; string = set banner; undefined = tidak diubah
         ...(bannerUrl === null ? { bannerUrl: null } : typeof bannerUrl === "string" ? { bannerUrl } : {}),
+        ...(typeof kategori === "string" && VALID_KATEGORI.includes(kategori as KategoriNews)
+          ? { kategori: kategori as KategoriNews }
+          : {}),
       },
-      select: SELECT_NEWS,
+      select: selectNews(auth.session.anggotaId),
     });
-    return NextResponse.json(news);
+    const { like, ...rest } = news;
+    return NextResponse.json({ ...rest, liked: like.length > 0 });
   } catch (e: unknown) {
     if ((e as { code?: string }).code === "P2025") {
       return NextResponse.json({ error: "News tidak ditemukan" }, { status: 404 });

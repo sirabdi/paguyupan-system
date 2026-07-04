@@ -1,17 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  EllipsisIcon,
-  InboxIcon,
-  PencilIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  SearchIcon,
-  Trash2Icon,
-  UsersIcon,
-} from "lucide-react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { InboxIcon, PlusIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -23,18 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  Badge,
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   Input,
   Select,
   SelectContent,
@@ -42,39 +22,59 @@ import {
   SelectTrigger,
   SelectValue,
   Skeleton,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
 } from "@/components/atoms";
 
 import {
   ANGGOTA_KEY,
   deleteAnggota,
-  fetchAnggota,
+  fetchAnggotaPaginated,
   type StatusFilter,
 } from "@/modules";
 import { fetchMe, ME_KEY } from "@/modules/auth.module";
-
 import { STATUS_LABEL, type Anggota } from "@/modules/anggota.module/types";
-import { AnggotaFormDialog } from "@/components/molecules";
-import { formatDate } from "@/utils";
+import { AnggotaCard, AnggotaFormDialog } from "@/components/molecules";
+import { useDebounced } from "@/utils";
 
 const FILTER_LABEL: Record<StatusFilter, string> = {
   ALL: "Semua status",
   ...STATUS_LABEL,
 };
 
-// Menunda pembaruan nilai sampai pengguna berhenti mengetik.
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <p className="text-sm">Gagal memuat data anggota.</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCwIcon />
+        Coba lagi
+      </Button>
+    </div>
+  );
+}
+
+function EmptyState({
+  hasFilter,
+  onCreate,
+}: {
+  hasFilter: boolean;
+  onCreate: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+      <InboxIcon className="size-10" />
+      <p className="text-sm">
+        {hasFilter
+          ? "Tidak ada anggota yang cocok dengan filter."
+          : "Belum ada anggota."}
+      </p>
+      {!hasFilter && (
+        <Button variant="outline" size="sm" onClick={onCreate}>
+          <PlusIcon />
+          Tambah anggota pertama
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function AnggotaTable() {
@@ -92,16 +92,24 @@ export function AnggotaTable() {
 
   const filter = { q: debouncedQ, status };
   const {
-    data = [],
+    data,
     isPending,
     isError,
     isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
     refetch,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: [...ANGGOTA_KEY, filter],
-    queryFn: () => fetchAnggota(filter),
+    queryFn: ({ pageParam }) => fetchAnggotaPaginated({ ...filter, page: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
+
+  const allItems = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: (target: Anggota) => deleteAnggota(target.id),
@@ -127,29 +135,23 @@ export function AnggotaTable() {
   const hasFilter = q.trim() !== "" || status !== "ALL";
 
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle className="flex items-center gap-2">
-          <UsersIcon className="size-4" />
-          Anggota
-        </CardTitle>
-        <CardDescription>
-          {isPending
-            ? "Memuat data…"
-            : `${data.length} anggota${hasFilter ? " (terfilter)" : ""}`}
-        </CardDescription>
-        <CardAction>
-          <Button onClick={openCreate}>
+    <>
+      {/* Header: aksi + filter */}
+      <div className="shrink-0 bg-white px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-zinc-400">
+            {isPending
+              ? "Memuat data…"
+              : `${total} anggota${hasFilter ? " · terfilter" : ""}`}
+          </p>
+          <Button size="sm" onClick={openCreate}>
             <PlusIcon />
-            Tambah Anggota
+            Tambah
           </Button>
-        </CardAction>
-      </CardHeader>
+        </div>
 
-      <CardContent className="flex flex-col gap-4">
-        {/* Filter & pencarian */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={q}
@@ -163,7 +165,7 @@ export function AnggotaTable() {
             value={status}
             onValueChange={(value) => setStatus(value as StatusFilter)}
           >
-            <SelectTrigger className="sm:w-44">
+            <SelectTrigger className="w-full">
               <SelectValue>
                 {(value) => FILTER_LABEL[(value as StatusFilter) ?? "ALL"]}
               </SelectValue>
@@ -175,130 +177,52 @@ export function AnggotaTable() {
             </SelectContent>
           </Select>
         </div>
+      </div>
 
-        {/* Tabel */}
-        <div
-          className="rounded-lg border data-[fetching=true]:opacity-60 transition-opacity"
-          data-fetching={isFetching && !isPending}
-        >
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Kontak</TableHead>
-                <TableHead className="hidden md:table-cell">Alamat</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">
-                  Bergabung
-                </TableHead>
-                <TableHead className="w-24 text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isPending ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((__, j) => (
-                      <TableCell key={j}>
-                        <Skeleton className="h-4 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : isError ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                      <p>Gagal memuat data anggota.</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => refetch()}
-                      >
-                        <RefreshCwIcon />
-                        Coba lagi
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : data.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <div className="flex flex-col items-center gap-3 py-10 text-center text-muted-foreground">
-                      <InboxIcon className="size-8" />
-                      <p>
-                        {hasFilter
-                          ? "Tidak ada anggota yang cocok dengan filter."
-                          : "Belum ada anggota."}
-                      </p>
-                      {!hasFilter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={openCreate}
-                        >
-                          <PlusIcon />
-                          Tambah anggota pertama
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.nama}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span>{a.email || "—"}</span>
-                        <span className="text-muted-foreground">
-                          {a.noTelp || "—"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden max-w-xs truncate md:table-cell">
-                      {a.alamat || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={a.status === "AKTIF" ? "default" : "secondary"}
-                      >
-                        {STATUS_LABEL[a.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {formatDate(a.tanggalGabung)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={<Button variant="ghost" size="icon-sm" />}
-                          aria-label={`Aksi untuk ${a.nama}`}
-                        >
-                          <EllipsisIcon />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(a)}>
-                            <PencilIcon />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => setDeleteTarget(a)}
-                          >
-                            <Trash2Icon />
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
+      {/* Listview */}
+      <div
+        className="flex-1 overflow-y-auto p-4 transition-opacity data-[fetching=true]:opacity-60"
+        data-fetching={isFetching && !isPending && !isFetchingNextPage}
+      >
+        <div className="flex flex-col gap-2">
+          {isPending ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg border bg-white p-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="mt-2 h-3 w-40" />
+                <Skeleton className="mt-1 h-3 w-24" />
+              </div>
+            ))
+          ) : isError ? (
+            <ErrorState onRetry={refetch} />
+          ) : allItems.length === 0 ? (
+            <EmptyState hasFilter={hasFilter} onCreate={openCreate} />
+          ) : (
+            <>
+              {allItems.map((a) => (
+                <AnggotaCard
+                  key={a.id}
+                  anggota={a}
+                  onEdit={openEdit}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+              {hasNextPage && (
+                <div className="pt-2 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                  >
+                    {isFetchingNextPage ? "Memuat…" : "Muat lebih banyak"}
+                  </Button>
+                </div>
               )}
-            </TableBody>
-          </Table>
+            </>
+          )}
         </div>
-      </CardContent>
+      </div>
 
       {/* Dialog tambah/edit */}
       <AnggotaFormDialog
@@ -341,6 +265,6 @@ export function AnggotaTable() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }

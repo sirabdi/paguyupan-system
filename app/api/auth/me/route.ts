@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { getSessionWithReason } from "@/lib/session";
 
 // GET /api/auth/me — return profil user yang sedang login
 export async function GET() {
-  const auth = await requireAuth();
-  if (!auth.ok) return auth.response;
+  const result = await getSessionWithReason();
+
+  if (!result.ok) {
+    return NextResponse.json(
+      { error: "Tidak terautentikasi", reason: result.reason },
+      { status: 401 },
+    );
+  }
 
   const anggota = await prisma.anggota.findUnique({
-    where: { id: auth.session.anggotaId },
+    where: { id: result.session.anggotaId },
     select: { id: true, nama: true, email: true, role: true, status: true },
   });
 

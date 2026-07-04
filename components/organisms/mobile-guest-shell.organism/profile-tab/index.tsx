@@ -17,22 +17,7 @@ import { logout } from "@/modules";
 import type { ProfileData } from "../index";
 import { EmailVerifyRow } from "./email-verify";
 import { ChangePasswordRow } from "./change-password";
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
-
-function formatTanggal(iso: string | null): string {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
+import { ROLE_LABEL, formatDateLong } from "@/utils";
 
 type Props = {
   role: string;
@@ -183,7 +168,7 @@ export function ProfileTab({ role, profile }: Props) {
               <DetailRow
                 icon={<CalendarIcon className="size-4 text-zinc-500" />}
                 label="Tanggal Gabung"
-                value={formatTanggal(profile.tanggalGabung)}
+                value={formatDateLong(profile.tanggalGabung)}
               />
               <DetailRow
                 icon={<ShieldIcon className="size-4 text-zinc-500" />}

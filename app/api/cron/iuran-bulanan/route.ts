@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getIuranDefault } from "@/lib/konfigurasi";
+import { periodeSekarang, formatRupiah } from "@/utils";
 
 // Cron job: buat tagihan iuran periode berjalan untuk semua anggota AKTIF.
 // Dipanggil oleh scheduler eksternal (Vercel Cron / crontab / cron-job.org).
@@ -8,18 +10,6 @@ import { prisma } from "@/lib/prisma";
 // Vercel Cron otomatis mengirim header `Authorization: Bearer <CRON_SECRET>`
 // jika env CRON_SECRET diset. Untuk crontab manual:
 //   curl -H "Authorization: Bearer $CRON_SECRET" https://domain/api/cron/iuran-bulanan
-
-function periodeSekarang(): string {
-  // YYYY-MM menurut zona waktu Asia/Jakarta (WIB)
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Jakarta",
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(new Date());
-  const year = parts.find((p) => p.type === "year")!.value;
-  const month = parts.find((p) => p.type === "month")!.value;
-  return `${year}-${month}`;
-}
 
 export async function GET(req: Request) {
   // --- Proteksi: wajib ada secret yang cocok ---
@@ -29,7 +19,7 @@ export async function GET(req: Request) {
   }
 
   const periode = periodeSekarang();
-  const jumlah = new Prisma.Decimal(process.env.IURAN_BULANAN_DEFAULT ?? "50000");
+  const jumlah = new Prisma.Decimal(await getIuranDefault());
 
   const anggotaAktif = await prisma.anggota.findMany({
     where: { status: "AKTIF" },
@@ -49,11 +39,7 @@ export async function GET(req: Request) {
     year: "numeric",
     timeZone: "Asia/Jakarta",
   });
-  const jumlahRupiah = new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(Number(jumlah));
+  const jumlahRupiah = formatRupiah(Number(jumlah));
 
   const iuranPeriodeIni = await prisma.iuran.findMany({
     where: { anggotaId: { in: anggotaAktif.map((a) => a.id) }, periode },

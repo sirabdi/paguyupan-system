@@ -1,42 +1,60 @@
+import { fetchClient, toError } from "@/lib/fetch-client";
+
+interface PaginatedResponse<T> {
+  data: T[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+}
+
 export interface NewsPenulis {
   id: number;
   nama: string;
   role: string;
 }
 
+export type KategoriNews = "UNDANGAN" | "BERITA" | "PENGUMUMAN";
+
+export const KATEGORI_LABEL: Record<KategoriNews, string> = {
+  UNDANGAN: "Undangan",
+  BERITA: "Berita",
+  PENGUMUMAN: "Pengumuman",
+};
+
 export interface News {
   id: number;
   judul: string;
   konten: string;
   bannerUrl: string | null;
+  kategori: KategoriNews;
   penulis: NewsPenulis;
   createdAt: string;
   updatedAt: string;
+  liked: boolean;
+  _count: { komentar: number; like: number };
 }
 
 export interface NewsInput {
   judul: string;
   konten: string;
   bannerUrl?: string | null;
-}
-
-async function toError(res: Response, fallback: string): Promise<Error> {
-  const body = (await res.json().catch(() => null)) as { error?: string } | null;
-  return new Error(body?.error ?? fallback);
+  kategori: KategoriNews;
 }
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-export async function fetchNews(q?: string): Promise<News[]> {
+export async function fetchNews(q?: string, kategori?: KategoriNews): Promise<News[]> {
   const params = new URLSearchParams();
   if (q?.trim()) params.set("q", q.trim());
-  const res = await fetch(`/api/news?${params.toString()}`);
+  if (kategori) params.set("kategori", kategori);
+  const res = await fetchClient(`/api/news?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat news");
   return res.json();
 }
 
 export async function createNews(input: NewsInput): Promise<News> {
-  const res = await fetch("/api/news", {
+  const res = await fetchClient("/api/news", {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(input),
@@ -46,7 +64,7 @@ export async function createNews(input: NewsInput): Promise<News> {
 }
 
 export async function updateNews(id: number, input: NewsInput): Promise<News> {
-  const res = await fetch(`/api/news/${id}`, {
+  const res = await fetchClient(`/api/news/${id}`, {
     method: "PUT",
     headers: JSON_HEADERS,
     body: JSON.stringify(input),
@@ -56,8 +74,29 @@ export async function updateNews(id: number, input: NewsInput): Promise<News> {
 }
 
 export async function deleteNews(id: number): Promise<void> {
-  const res = await fetch(`/api/news/${id}`, { method: "DELETE" });
+  const res = await fetchClient(`/api/news/${id}`, { method: "DELETE" });
   if (!res.ok) throw await toError(res, "Gagal menghapus news");
+}
+
+export async function fetchNewsPaginated(filter: {
+  q?: string;
+  page: number;
+  kategori?: KategoriNews;
+}): Promise<PaginatedResponse<News>> {
+  const params = new URLSearchParams();
+  if (filter.q?.trim()) params.set("q", filter.q.trim());
+  params.set("page", String(filter.page));
+  if (filter.kategori) params.set("kategori", filter.kategori);
+
+  const res = await fetchClient(`/api/news?${params.toString()}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat news");
+  return res.json();
+}
+
+export async function fetchNewsById(id: number): Promise<News> {
+  const res = await fetchClient(`/api/news/${id}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat berita");
+  return res.json();
 }
 
 export const NEWS_KEY = ["news"] as const;

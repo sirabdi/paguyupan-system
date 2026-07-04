@@ -4,11 +4,28 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
-import { Loader2Icon, UploadIcon, XIcon, ArrowLeftIcon } from "lucide-react";
+import { Loader2Icon, UploadIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button, Input, Label, RichTextEditor } from "@/components/atoms";
-import { NEWS_KEY, createNews, updateNews, type News } from "@/modules";
+import {
+  Button,
+  Input,
+  Label,
+  RichTextEditor,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/atoms";
+import {
+  NEWS_KEY,
+  createNews,
+  updateNews,
+  type News,
+  KATEGORI_LABEL,
+} from "@/modules";
+import { KATEGORI_OPTIONS } from "@/modules/news.module/dto/news.dto";
 import { useNewsForm } from "@/modules/news.module/news.form";
 import { stripHtml } from "@/utils";
 
@@ -41,21 +58,45 @@ export function NewsForm({ news }: { news?: News }) {
   const [bannerUploading, setBannerUploading] = React.useState(false);
 
   const {
-    register,
     handleSubmit,
+    register,
     control,
-    setValue,
     watch,
+    setValue,
     formState: { errors, isValid },
   } = useNewsForm(news);
 
   const bannerUrl = watch("bannerUrl");
+
+  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("Format gambar tidak didukung");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran gambar maks. 5 MB");
+      return;
+    }
+    setBannerUploading(true);
+    try {
+      const url = await uploadBanner(file);
+      setValue("bannerUrl", url);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBannerUploading(false);
+      e.target.value = "";
+    }
+  }
 
   const mutation = useMutation({
     mutationFn: (input: {
       judul: string;
       konten: string;
       bannerUrl?: string | null;
+      kategori: import("@/modules").KategoriNews;
     }) => (isEdit ? updateNews(news!.id, input) : createNews(input)),
     onSuccess: (saved) => {
       toast.success(
@@ -69,27 +110,6 @@ export function NewsForm({ news }: { news?: News }) {
 
   const saving = mutation.isPending;
 
-  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(
-        "Hanya gambar JPEG, PNG, WebP, GIF, atau AVIF yang diizinkan",
-      );
-      return;
-    }
-    setBannerUploading(true);
-    try {
-      const url = await uploadBanner(file);
-      setValue("bannerUrl", url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal upload banner");
-    } finally {
-      setBannerUploading(false);
-    }
-  }
-
   return (
     <form
       onSubmit={handleSubmit((data) => {
@@ -99,154 +119,175 @@ export function NewsForm({ news }: { news?: News }) {
         }
         mutation.mutate(data);
       })}
-      className="grid gap-8"
+      className="flex min-h-0 flex-1 flex-col"
     >
-      {/* Kembali */}
-      <div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => router.push("/news")}
-          className="-ml-1"
-        >
-          <ArrowLeftIcon />
-          Kembali ke daftar berita
-        </Button>
+      {/* Body (scrollable) */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid gap-4">
+          {/* Judul */}
+          <div className="grid gap-1">
+            <Label htmlFor="judul" className="text-sm font-medium">
+              Judul <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="judul"
+              placeholder="Judul berita"
+              className="h-10 text-sm"
+              autoFocus
+              {...register("judul")}
+            />
+            {errors.judul && (
+              <p className="text-xs text-destructive">{errors.judul.message}</p>
+            )}
+          </div>
+
+          {/* Banner */}
+          <div className="grid gap-1">
+            <Label className="text-sm font-medium">
+              Banner Image
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                Opsional · maks. 5 MB
+              </span>
+            </Label>
+
+            {bannerUrl ? (
+              <div className="relative overflow-hidden rounded-xl border bg-muted">
+                <div className="h-52 w-full">
+                  <img
+                    src={bannerUrl}
+                    alt="Banner preview"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="absolute top-3 right-3 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={bannerUploading}
+                    className="bg-background/80 backdrop-blur"
+                  >
+                    {bannerUploading ? (
+                      <Loader2Icon className="animate-spin" />
+                    ) : (
+                      <UploadIcon />
+                    )}
+                    Ganti
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon-sm"
+                    onClick={() => setValue("bannerUrl", null)}
+                    aria-label="Hapus banner"
+                    className="bg-destructive/80 text-white backdrop-blur"
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={bannerUploading}
+                className="flex h-44 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50"
+              >
+                {bannerUploading ? (
+                  <Loader2Icon className="size-7 animate-spin" />
+                ) : (
+                  <UploadIcon className="size-7" />
+                )}
+                <span className="text-sm font-medium">
+                  {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
+                </span>
+                <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
+              </button>
+            )}
+
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBannerChange}
+            />
+          </div>
+
+          {/* Kategori */}
+          <div className="grid gap-1">
+            <Label className="text-sm font-medium">
+              Kategori <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              control={control}
+              name="kategori"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="h-10 w-full text-sm">
+                    <SelectValue placeholder="Pilih kategori">
+                      {(v) => KATEGORI_LABEL[v as keyof typeof KATEGORI_LABEL] ?? v}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KATEGORI_OPTIONS.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {KATEGORI_LABEL[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.kategori && (
+              <p className="text-xs text-destructive">{errors.kategori.message}</p>
+            )}
+          </div>
+
+          {/* Konten */}
+          <div className="grid gap-1">
+            <Label className="text-sm font-medium">
+              Konten <span className="text-destructive">*</span>
+            </Label>
+            <Controller
+              control={control}
+              name="konten"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Tulis isi berita di sini…"
+                  className="min-h-75"
+                />
+              )}
+            />
+            {errors.konten && (
+              <p className="text-xs text-destructive">{errors.konten.message}</p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4">
-        {/* Judul */}
-        <div className="grid gap-1">
-          <Label htmlFor="judul" className="text-sm font-medium">
-            Judul <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="judul"
-            placeholder="Judul berita"
-            className="h-10 text-sm"
-            autoFocus
-            {...register("judul")}
-          />
-          {errors.judul && (
-            <p className="text-xs text-destructive">{errors.judul.message}</p>
-          )}
-        </div>
-
-        {/* Banner */}
-        <div className="grid gap-1">
-          <Label className="text-sm font-medium">
-            Banner Image
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              Opsional · maks. 5 MB
-            </span>
-          </Label>
-
-          {bannerUrl ? (
-            <div className="relative overflow-hidden rounded-xl border bg-muted">
-              <div className="h-64 w-full sm:h-80">
-                <img
-                  src={bannerUrl}
-                  alt="Banner preview"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div className="absolute top-3 right-3 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => bannerInputRef.current?.click()}
-                  disabled={bannerUploading}
-                  className="bg-background/80 backdrop-blur"
-                >
-                  {bannerUploading ? (
-                    <Loader2Icon className="animate-spin" />
-                  ) : (
-                    <UploadIcon />
-                  )}
-                  Ganti
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon-sm"
-                  onClick={() => setValue("bannerUrl", null)}
-                  aria-label="Hapus banner"
-                  className="bg-destructive/80 text-white backdrop-blur"
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => bannerInputRef.current?.click()}
-              disabled={bannerUploading}
-              className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50 sm:h-56"
-            >
-              {bannerUploading ? (
-                <Loader2Icon className="size-7 animate-spin" />
-              ) : (
-                <UploadIcon className="size-7" />
-              )}
-              <span className="text-sm font-medium">
-                {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
-              </span>
-              <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
-            </button>
-          )}
-
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleBannerChange}
-          />
-        </div>
-
-        {/* Konten */}
-        <div className="grid gap-1">
-          <Label className="text-sm font-medium">
-            Konten <span className="text-destructive">*</span>
-          </Label>
-          <Controller
-            control={control}
-            name="konten"
-            render={({ field }) => (
-              <RichTextEditor
-                value={field.value}
-                onChange={field.onChange}
-                placeholder="Tulis isi berita di sini…"
-                className="min-h-[360px]"
-              />
-            )}
-          />
-          {errors.konten && (
-            <p className="text-xs text-destructive">{errors.konten.message}</p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 border-t pt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/news")}
-            disabled={saving || bannerUploading}
-          >
-            Batal
-          </Button>
-          <Button
-            type="submit"
-            disabled={saving || bannerUploading || !isValid}
-          >
-            {saving && <Loader2Icon className="animate-spin" />}
-            {isEdit ? "Simpan Perubahan" : "Publikasikan"}
-          </Button>
-        </div>
+      {/* Action bar (sticky footer) */}
+      <div className="flex shrink-0 items-center gap-3 border-t bg-white p-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          onClick={() => router.push("/news")}
+          disabled={saving || bannerUploading}
+        >
+          Batal
+        </Button>
+        <Button
+          type="submit"
+          className="flex-1"
+          disabled={saving || bannerUploading || !isValid}
+        >
+          {saving && <Loader2Icon className="animate-spin" />}
+          {isEdit ? "Simpan Perubahan" : "Publikasikan"}
+        </Button>
       </div>
     </form>
   );

@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { LogoutButton } from "@/components/molecules";
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Admin",
-  SEKERTARIS: "Sekertaris",
-  BENDAHARA: "Bendahara",
-  ANGGOTA: "Anggota",
-};
+import { ROLE_LABEL } from "@/utils";
 
 export async function Navbar() {
   const session = await getSession();
