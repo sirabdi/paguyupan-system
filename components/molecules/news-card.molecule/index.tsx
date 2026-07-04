@@ -40,7 +40,10 @@ function useLikeMutation(newsId: number) {
             ? {
                 ...n,
                 liked: !n.liked,
-                _count: { ...n._count, like: n._count.like + (n.liked ? -1 : 1) },
+                _count: {
+                  ...n._count,
+                  like: n._count.like + (n.liked ? -1 : 1),
+                },
               }
             : n,
         ),
@@ -95,7 +98,7 @@ export function FeaturedCard({
             className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-colors"
           >
             <HeartIcon className={`size-3.5 transition-colors ${news.liked ? "fill-red-500 text-red-500" : ""}`} />
-            <span>{news._count.like}</span>
+            <span>{news._count.like} Like</span>
           </button>
           <button
             type="button"
@@ -103,13 +106,11 @@ export function FeaturedCard({
             className="flex items-center gap-1 text-xs text-zinc-400 hover:text-blue-500 transition-colors"
           >
             <MessageCircleIcon className="size-3.5" />
-            <span>{news._count.komentar}</span>
+            <span>{news._count.komentar} Komentar</span>
           </button>
         </div>
       </div>
-      {open && (
-        <NewsDetailSheet news={news} myAnggotaId={myAnggotaId} onClose={() => setOpen(false)} />
-      )}
+      {open && <NewsDetailSheet news={news} myAnggotaId={myAnggotaId} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -132,13 +133,13 @@ export function SmallCard({
           className="flex w-full gap-3 text-left transition-colors hover:bg-zinc-50"
         >
           {news.bannerUrl ? (
-            <img src={news.bannerUrl} alt={news.judul} className="size-24 shrink-0 rounded-l-sm object-cover" />
+            <img src={news.bannerUrl} alt={news.judul} className="size-24 shrink-0 rounded-tl-sm object-cover" />
           ) : (
             <div className="flex size-24 shrink-0 items-center justify-center bg-linear-to-br from-blue-100 to-indigo-100">
               <NewspaperIcon className="size-6 text-blue-300" />
             </div>
           )}
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3 pr-3">
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 py-3 pr-3">
             <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-zinc-900">{news.judul}</h3>
             <p className="line-clamp-1 text-[11px] text-zinc-400">{stripHtml(news.konten)}</p>
             <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-zinc-400">
@@ -155,21 +156,19 @@ export function SmallCard({
             className="flex items-center gap-1 text-xs text-zinc-400 hover:text-red-500 transition-colors"
           >
             <HeartIcon className={`size-3.5 ${news.liked ? "fill-red-500 text-red-500" : ""}`} />
-            <span>{news._count.like}</span>
+            <span>{news._count.like} Like</span>
           </button>
           <button
             type="button"
             onClick={() => setOpen(true)}
             className="flex items-center gap-1 text-xs text-zinc-400 hover:text-blue-500 transition-colors"
           >
-            <MessageCircleIcon className="size-3.5" />
-            <span>{news._count.komentar}</span>
+            <MessageCircleIcon className="size-3" />
+            <span>{news._count.komentar} Komentar</span>
           </button>
         </div>
       </div>
-      {open && (
-        <NewsDetailSheet news={news} myAnggotaId={myAnggotaId} onClose={() => setOpen(false)} />
-      )}
+      {open && <NewsDetailSheet news={news} myAnggotaId={myAnggotaId} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -189,33 +188,38 @@ function NewsDetailSheet({
   const likeMutation = useLikeMutation(news.id);
 
   return (
-    <div className="fixed inset-y-0 left-1/2 z-50 flex w-full -translate-x-1/2 flex-col bg-white md:w-97.5 overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0 flex items-center gap-3 border-b border-zinc-100 px-4 py-3">
-        <button
-          onClick={onClose}
-          className="flex size-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <span className="truncate text-sm font-semibold text-zinc-800">{news.judul}</span>
-      </div>
-
-      {/* Scrollable article */}
+    <div className="fixed inset-y-0 left-1/2 z-50 flex w-full -translate-x-1/2 flex-col bg-zinc-100 md:w-97.5 overflow-hidden">
+      {/* Scrollable: hero image + content card */}
       <div className="flex-1 overflow-y-auto">
-        {news.bannerUrl && (
-          <img src={news.bannerUrl} alt={news.judul} className="h-48 w-full object-cover" />
-        )}
-        <div className="px-5 py-4">
-          <h2 className="text-lg font-bold leading-snug text-zinc-900">{news.judul}</h2>
-          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
-            <ClockIcon className="size-3" />
-            <span>{formatDate(news.createdAt)}</span>
-            <span>·</span>
-            <span>{news.penulis.nama}</span>
-            <span>·</span>
-            <span className="text-blue-500">{ROLE_LABEL[news.penulis.role] ?? news.penulis.role}</span>
+        <div className="relative">
+          {news.bannerUrl ? (
+            <img src={news.bannerUrl} alt={news.judul} className="h-72 w-full object-cover" />
+          ) : (
+            <div className="h-56 w-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
+              <NewspaperIcon className="size-16 text-blue-300" />
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className="absolute left-4 top-4 flex size-9 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm"
+          >
+            <ChevronLeft size={18} />
+          </button>
+        </div>
+
+        <div className="-mt-6 rounded-t-2xl bg-white px-5 pb-8 pt-5">
+          <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600">
+            {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
+          </span>
+          <h1 className="mt-3 text-xl font-bold leading-snug text-zinc-900">{news.judul}</h1>
+          <div className="mt-4 flex items-center gap-3">
+            <Avatar nama={news.penulis.nama} />
+            <div>
+              <p className="text-xs font-semibold text-zinc-800">{news.penulis.nama}</p>
+              <p className="text-[10px] text-zinc-400">{formatDate(news.createdAt)}</p>
+            </div>
           </div>
+          <div className="mt-5 border-t border-zinc-100" />
           <div
             className="mt-4 text-sm leading-relaxed text-zinc-700 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-zinc-900 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-zinc-900 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:border-blue-300 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-500 [&_img]:mt-3 [&_img]:rounded-sm"
             dangerouslySetInnerHTML={{ __html: news.konten }}
@@ -223,15 +227,15 @@ function NewsDetailSheet({
         </div>
       </div>
 
-      {/* Action bar: like + comment */}
-      <div className="shrink-0 flex items-center gap-5 border-t border-zinc-100 px-5 py-3">
+      {/* Action bar pinned at bottom */}
+      <div className="shrink-0 flex items-center gap-5 border-t border-zinc-100 bg-white px-5 py-3">
         <button
           type="button"
           onClick={() => likeMutation.mutate()}
           className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-red-500 transition-colors"
         >
           <HeartIcon className={`size-5 transition-colors ${news.liked ? "fill-red-500 text-red-500" : ""}`} />
-          <span>{news._count.like}</span>
+          <span>{news._count.like} Like</span>
         </button>
         <button
           type="button"
@@ -239,7 +243,7 @@ function NewsDetailSheet({
           className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-blue-500 transition-colors"
         >
           <MessageCircleIcon className="size-5" />
-          <span>{news._count.komentar} komentar</span>
+          <span>{news._count.komentar} Komentar</span>
         </button>
       </div>
 
@@ -276,7 +280,7 @@ function CommentBottomSheet({
   const queryClient = useQueryClient();
   const key = komentarKey(newsId);
 
-  const { data: komentar = [], isPending } = useQuery({
+  const { data: komentarList = [], isPending } = useQuery({
     queryKey: key,
     queryFn: () => fetchKomentar(newsId),
     enabled: open,
@@ -322,12 +326,9 @@ function CommentBottomSheet({
         open ? "translate-y-0" : "translate-y-full"
       }`}
     >
-      {/* Drag handle */}
       <div className="flex shrink-0 justify-center pt-3 pb-1">
         <div className="h-1 w-10 rounded-full bg-zinc-300" />
       </div>
-
-      {/* Title + close */}
       <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-5 py-3">
         <p className="text-sm font-semibold text-zinc-800">Komentar</p>
         <button
@@ -339,18 +340,17 @@ function CommentBottomSheet({
         </button>
       </div>
 
-      {/* Comment list */}
       <div className="flex-1 overflow-y-auto px-5 py-4">
         {isPending ? (
           <p className="text-xs text-zinc-400">Memuat komentar…</p>
-        ) : komentar.length === 0 ? (
+        ) : komentarList.length === 0 ? (
           <p className="text-xs text-zinc-400">Belum ada komentar. Jadilah yang pertama!</p>
         ) : (
           <ul className="flex flex-col gap-4">
-            {komentar.map((k) => (
+            {komentarList.map((k) => (
               <KomentarItem
                 key={k.id}
-                komentar={k}
+                item={k}
                 myAnggotaId={myAnggotaId}
                 onReply={() => handleReply(k.id, k.penulis.nama)}
                 onDelete={(id) => deleteMutation.mutate(id)}
@@ -360,7 +360,6 @@ function CommentBottomSheet({
         )}
       </div>
 
-      {/* Pinned input */}
       <div className="shrink-0 border-t border-zinc-100 bg-white">
         {replyTo && (
           <div className="flex items-center justify-between bg-blue-50 px-4 py-2">
@@ -383,10 +382,7 @@ function CommentBottomSheet({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSubmit();
-              }
+              if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
             }}
             placeholder={replyTo ? `Balas ${replyTo.nama}…` : "Tulis komentar…"}
             className="flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-blue-300 focus:outline-none"
@@ -408,28 +404,28 @@ function CommentBottomSheet({
 // ─── KomentarItem ─────────────────────────────────────────────────────────────
 
 function KomentarItem({
-  komentar,
+  item,
   myAnggotaId,
   onReply,
   onDelete,
 }: {
-  komentar: Komentar;
+  item: Komentar;
   myAnggotaId: number;
   onReply: () => void;
   onDelete: (id: number) => void;
 }) {
-  const canDelete = komentar.penulis.id === myAnggotaId;
+  const canDelete = item.penulis.id === myAnggotaId;
 
   return (
     <li>
       <div className="flex gap-2.5">
-        <Avatar nama={komentar.penulis.nama} />
+        <Avatar nama={item.penulis.nama} />
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-xs font-semibold text-zinc-800">{komentar.penulis.nama}</span>
-            <span className="text-[10px] text-zinc-400">{formatDate(komentar.createdAt)}</span>
+            <span className="text-xs font-semibold text-zinc-800">{item.penulis.nama}</span>
+            <span className="text-[10px] text-zinc-400">{formatDate(item.createdAt)}</span>
           </div>
-          <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{komentar.konten}</p>
+          <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{item.konten}</p>
           <div className="mt-1 flex gap-3">
             <button
               type="button"
@@ -441,7 +437,7 @@ function KomentarItem({
             {canDelete && (
               <button
                 type="button"
-                onClick={() => onDelete(komentar.id)}
+                onClick={() => onDelete(item.id)}
                 className="text-[10px] text-zinc-400 hover:text-red-500 transition-colors"
               >
                 <Trash2Icon className="size-3" />
@@ -451,9 +447,9 @@ function KomentarItem({
         </div>
       </div>
 
-      {komentar.replies.length > 0 && (
+      {item.replies.length > 0 && (
         <ul className="ml-9 mt-2 flex flex-col gap-3 border-l-2 border-zinc-100 pl-3">
-          {komentar.replies.map((r) => (
+          {item.replies.map((r) => (
             <li key={r.id} className="flex gap-2.5">
               <Avatar nama={r.penulis.nama} size="sm" />
               <div className="flex-1 min-w-0">
