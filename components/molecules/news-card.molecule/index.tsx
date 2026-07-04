@@ -532,7 +532,7 @@ function KomentarItem({
 // ─── ReplyContent ────────────────────────────────────────────────────────────
 
 function ReplyContent({ konten }: { konten: string }) {
-  const match = konten.match(/^@\[(.+?)\] ([\s\S]+)$/s);
+  const match = konten.match(/^@\[(.+?)\] ([\s\S]+)$/);
   if (!match) return <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{konten}</p>;
   return (
     <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">
