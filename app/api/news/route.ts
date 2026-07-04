@@ -2,15 +2,46 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireNewsEditor } from "@/lib/auth";
 
-const SELECT_NEWS = {
-  id: true,
-  judul: true,
-  konten: true,
-  bannerUrl: true,
-  createdAt: true,
-  updatedAt: true,
-  penulis: { select: { id: true, nama: true, role: true } },
-} as const;
+function selectNews(anggotaId: number) {
+  return {
+    id: true,
+    judul: true,
+    konten: true,
+    bannerUrl: true,
+    createdAt: true,
+    updatedAt: true,
+    penulis: { select: { id: true, nama: true, role: true } },
+    _count: {
+      select: {
+        komentar: { where: { parentId: null } },
+        like: true,
+      },
+    },
+    like: {
+      where: { anggotaId },
+      select: { id: true },
+    },
+  } as const;
+}
+
+function toNewsResponse(n: ReturnType<typeof buildNewsItem>) {
+  return n;
+}
+
+function buildNewsItem(raw: {
+  id: number;
+  judul: string;
+  konten: string;
+  bannerUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  penulis: { id: number; nama: string; role: string };
+  _count: { komentar: number; like: number };
+  like: { id: number }[];
+}) {
+  const { like, ...rest } = raw;
+  return { ...rest, liked: like.length > 0 };
+}
 
 // GET /api/news?q=keyword  — semua role yang sudah login
 export async function GET(req: Request) {
@@ -20,13 +51,13 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q");
 
-  const news = await prisma.news.findMany({
+  const rows = await prisma.news.findMany({
     where: q ? { judul: { contains: q } } : undefined,
     orderBy: { createdAt: "desc" },
-    select: SELECT_NEWS,
+    select: selectNews(auth.session.anggotaId),
   });
 
-  return NextResponse.json(news);
+  return NextResponse.json(rows.map(buildNewsItem));
 }
 
 // POST /api/news  — hanya Admin & Sekertaris
@@ -47,15 +78,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Field 'konten' wajib diisi" }, { status: 400 });
   }
 
-  const news = await prisma.news.create({
+  const row = await prisma.news.create({
     data: {
       judul: judul.trim(),
       konten: konten.trim(),
       bannerUrl: typeof bannerUrl === "string" ? bannerUrl : null,
       penulisId: auth.session.anggotaId,
     },
-    select: SELECT_NEWS,
+    select: selectNews(auth.session.anggotaId),
   });
 
-  return NextResponse.json(news, { status: 201 });
+  return NextResponse.json(buildNewsItem(row), { status: 201 });
 }
