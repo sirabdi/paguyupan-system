@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  ChevronDown,
   ChevronLeft,
   ClockIcon,
   HeartIcon,
@@ -74,7 +75,7 @@ export function FeaturedCard({
           {news.bannerUrl ? (
             <img src={news.bannerUrl} alt={news.judul} className="h-40 w-full object-cover" />
           ) : (
-            <div className="flex h-40 items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-100">
+            <div className="flex h-40 items-center justify-center bg-linear-to-br from-blue-100 to-indigo-100">
               <NewspaperIcon className="size-10 text-blue-300" />
             </div>
           )}
@@ -175,51 +176,56 @@ export function SmallCard({
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
-function NewsDetailSheet({
+export function NewsDetailSheet({
   news,
   myAnggotaId,
   onClose,
+  autoOpenComments = false,
 }: {
   news: News;
   myAnggotaId: number;
   onClose: () => void;
+  autoOpenComments?: boolean;
 }) {
-  const [commentOpen, setCommentOpen] = React.useState(false);
+  const [commentOpen, setCommentOpen] = React.useState(autoOpenComments);
   const likeMutation = useLikeMutation(news.id);
 
   return (
-    <div className="fixed inset-y-0 left-1/2 z-50 flex w-full -translate-x-1/2 flex-col bg-zinc-100 md:w-97.5 overflow-hidden">
-      {/* Scrollable: hero image + content card */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="relative">
-          {news.bannerUrl ? (
-            <img src={news.bannerUrl} alt={news.judul} className="h-72 w-full object-cover" />
-          ) : (
-            <div className="h-56 w-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-indigo-200">
-              <NewspaperIcon className="size-16 text-blue-300" />
-            </div>
-          )}
-          <button
-            onClick={onClose}
-            className="absolute left-4 top-4 flex size-9 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm"
-          >
-            <ChevronLeft size={18} />
-          </button>
-        </div>
+    <div className="fixed inset-y-0 left-1/2 z-50 flex w-full -translate-x-1/2 flex-col bg-white md:w-97.5 overflow-hidden">
+      {/* Header bar */}
+      <div className="shrink-0 flex items-center gap-2 border-b border-zinc-100 px-3 py-3">
+        <button
+          onClick={onClose}
+          className="flex size-8 items-center justify-center rounded-full text-zinc-600 hover:bg-zinc-100"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <p className="flex-1 truncate text-sm font-semibold text-zinc-800">{news.judul}</p>
+      </div>
 
-        <div className="-mt-6 rounded-t-2xl bg-white px-5 pb-8 pt-5">
-          <span className="inline-block rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-600">
-            {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
-          </span>
-          <h1 className="mt-3 text-xl font-bold leading-snug text-zinc-900">{news.judul}</h1>
-          <div className="mt-4 flex items-center gap-3">
-            <Avatar nama={news.penulis.nama} />
-            <div>
-              <p className="text-xs font-semibold text-zinc-800">{news.penulis.nama}</p>
-              <p className="text-[10px] text-zinc-400">{formatDate(news.createdAt)}</p>
-            </div>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
+        {news.bannerUrl ? (
+          <img src={news.bannerUrl} alt={news.judul} className="h-52 w-full object-cover" />
+        ) : (
+          <div className="flex h-36 items-center justify-center bg-linear-to-br from-blue-100 to-indigo-100">
+            <NewspaperIcon className="size-12 text-blue-300" />
           </div>
-          <div className="mt-5 border-t border-zinc-100" />
+        )}
+
+        <div className="px-5 py-4">
+          <h1 className="text-lg font-bold leading-snug text-zinc-900">{news.judul}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-zinc-400">
+            <ClockIcon className="size-3" />
+            <span>{formatDate(news.createdAt)}</span>
+            <span>·</span>
+            <span>{news.penulis.nama}</span>
+            <span>·</span>
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600">
+              {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
+            </span>
+          </div>
+          <div className="mt-4 border-t border-zinc-100" />
           <div
             className="mt-4 text-sm leading-relaxed text-zinc-700 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-zinc-900 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-zinc-900 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:mt-2 [&_blockquote]:border-l-2 [&_blockquote]:border-blue-300 [&_blockquote]:pl-3 [&_blockquote]:text-zinc-500 [&_img]:mt-3 [&_img]:rounded-sm"
             dangerouslySetInnerHTML={{ __html: news.konten }}
@@ -287,12 +293,12 @@ function CommentBottomSheet({
   });
 
   const [input, setInput] = React.useState("");
-  const [replyTo, setReplyTo] = React.useState<{ id: number; nama: string } | null>(null);
+  const [replyTo, setReplyTo] = React.useState<{ parentId: number; targetId: number; targetNama: string } | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const postMutation = useMutation({
-    mutationFn: (vars: { konten: string; parentId?: number }) =>
-      postKomentar(newsId, vars.konten, vars.parentId),
+    mutationFn: (vars: { konten: string; parentId?: number; targetId?: number }) =>
+      postKomentar(newsId, vars.konten, vars.parentId, vars.targetId),
     onSuccess: () => {
       setInput("");
       setReplyTo(null);
@@ -309,15 +315,15 @@ function CommentBottomSheet({
     },
   });
 
-  function handleReply(id: number, nama: string) {
-    setReplyTo({ id, nama });
+  function handleReply(parentId: number, targetId: number, targetNama: string) {
+    setReplyTo({ parentId, targetId, targetNama });
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
   function handleSubmit() {
     const trimmed = input.trim();
     if (!trimmed) return;
-    postMutation.mutate({ konten: trimmed, parentId: replyTo?.id });
+    postMutation.mutate({ konten: trimmed, parentId: replyTo?.parentId, targetId: replyTo?.targetId });
   }
 
   return (
@@ -352,7 +358,7 @@ function CommentBottomSheet({
                 key={k.id}
                 item={k}
                 myAnggotaId={myAnggotaId}
-                onReply={() => handleReply(k.id, k.penulis.nama)}
+                onReply={handleReply}
                 onDelete={(id) => deleteMutation.mutate(id)}
               />
             ))}
@@ -364,7 +370,7 @@ function CommentBottomSheet({
         {replyTo && (
           <div className="flex items-center justify-between bg-blue-50 px-4 py-2">
             <span className="text-xs text-blue-600">
-              Membalas <strong>{replyTo.nama}</strong>
+              Membalas <strong>{replyTo.targetNama}</strong>
             </span>
             <button
               type="button"
@@ -384,7 +390,7 @@ function CommentBottomSheet({
             onKeyDown={(e) => {
               if (e.key === "Enter") { e.preventDefault(); handleSubmit(); }
             }}
-            placeholder={replyTo ? `Balas ${replyTo.nama}…` : "Tulis komentar…"}
+            placeholder={replyTo ? `Balas ${replyTo.targetNama}…` : "Tulis komentar…"}
             className="flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 focus:border-blue-300 focus:outline-none"
           />
           <button
@@ -411,10 +417,11 @@ function KomentarItem({
 }: {
   item: Komentar;
   myAnggotaId: number;
-  onReply: () => void;
+  onReply: (parentId: number, targetId: number, targetNama: string) => void;
   onDelete: (id: number) => void;
 }) {
   const canDelete = item.penulis.id === myAnggotaId;
+  const [showReplies, setShowReplies] = React.useState(false);
 
   return (
     <li>
@@ -426,14 +433,28 @@ function KomentarItem({
             <span className="text-[10px] text-zinc-400">{formatDate(item.createdAt)}</span>
           </div>
           <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{item.konten}</p>
-          <div className="mt-1 flex gap-3">
+          <div className="mt-1 flex items-center gap-3">
             <button
               type="button"
-              onClick={onReply}
+              onClick={() => onReply(item.id, item.penulis.id, item.penulis.nama)}
               className="text-[10px] font-medium text-zinc-400 hover:text-blue-500 transition-colors"
             >
               Balas
             </button>
+            {item.replies.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowReplies((v) => !v)}
+                className="flex items-center gap-0.5 text-[10px] font-medium text-blue-500 hover:text-blue-600 transition-colors"
+              >
+                <ChevronDown
+                  className={`size-3 transition-transform duration-200 ${showReplies ? "rotate-180" : ""}`}
+                />
+                {showReplies
+                  ? "Sembunyikan balasan"
+                  : `Lihat ${item.replies.length} balasan`}
+              </button>
+            )}
             {canDelete && (
               <button
                 type="button"
@@ -447,7 +468,7 @@ function KomentarItem({
         </div>
       </div>
 
-      {item.replies.length > 0 && (
+      {showReplies && item.replies.length > 0 && (
         <ul className="ml-9 mt-2 flex flex-col gap-3 border-l-2 border-zinc-100 pl-3">
           {item.replies.map((r) => (
             <li key={r.id} className="flex gap-2.5">
@@ -458,15 +479,24 @@ function KomentarItem({
                   <span className="text-[10px] text-zinc-400">{formatDate(r.createdAt)}</span>
                 </div>
                 <p className="mt-0.5 text-xs text-zinc-700 leading-relaxed">{r.konten}</p>
-                {r.penulis.id === myAnggotaId && (
+                <div className="mt-1 flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => onDelete(r.id)}
-                    className="mt-1 text-[10px] text-zinc-400 hover:text-red-500 transition-colors"
+                    onClick={() => onReply(item.id, r.penulis.id, r.penulis.nama)}
+                    className="text-[10px] font-medium text-zinc-400 hover:text-blue-500 transition-colors"
                   >
-                    <Trash2Icon className="size-3" />
+                    Balas
                   </button>
-                )}
+                  {r.penulis.id === myAnggotaId && (
+                    <button
+                      type="button"
+                      onClick={() => onDelete(r.id)}
+                      className="text-[10px] text-zinc-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2Icon className="size-3" />
+                    </button>
+                  )}
+                </div>
               </div>
             </li>
           ))}

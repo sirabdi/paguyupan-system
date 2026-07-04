@@ -149,6 +149,7 @@ model Notifikasi {
   pesan       String    @db.Text
   dibaca      Boolean   @default(false)
   referensiId Int       @map("referensi_id")
+  newsId      Int?      @map("news_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -160,6 +161,8 @@ model Notifikasi {
 enum TipeNotif {
   IURAN_TAGIHAN
   IURAN_LUNAS
+  KOMENTAR_ARTIKEL
+  KOMENTAR_BALASAN
 }
 
 model UserSession {

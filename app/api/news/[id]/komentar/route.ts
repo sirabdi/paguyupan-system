@@ -59,20 +59,21 @@ export async function POST(req: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 });
   }
 
-  const { konten, parentId } = (body ?? {}) as Record<string, unknown>;
+  const { konten, parentId, targetId } = (body ?? {}) as Record<string, unknown>;
 
   if (typeof konten !== "string" || konten.trim() === "") {
     return NextResponse.json({ error: "Komentar tidak boleh kosong" }, { status: 400 });
   }
 
   // Validasi parentId: harus root komentar (bukan reply)
+  let resolvedParentId: number | null = null;
   if (parentId !== undefined && parentId !== null) {
     if (typeof parentId !== "number") {
       return NextResponse.json({ error: "parentId tidak valid" }, { status: 400 });
     }
     const parent = await prisma.komentar.findUnique({
       where: { id: parentId },
-      select: { parentId: true, newsId: true },
+      select: { parentId: true, newsId: true, penulisId: true },
     });
     if (!parent || parent.newsId !== newsId) {
       return NextResponse.json({ error: "Komentar induk tidak ditemukan" }, { status: 404 });
@@ -80,6 +81,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     if (parent.parentId !== null) {
       return NextResponse.json({ error: "Tidak bisa membalas balasan" }, { status: 400 });
     }
+    resolvedParentId = parentId;
   }
 
   const komentar = await prisma.komentar.create({
@@ -87,7 +89,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       newsId,
       penulisId: auth.session.anggotaId,
       konten: konten.trim(),
-      parentId: typeof parentId === "number" ? parentId : null,
+      parentId: resolvedParentId,
     },
     select: {
       id: true,
@@ -97,5 +99,88 @@ export async function POST(req: Request, { params }: RouteContext) {
     },
   });
 
+  await sendKomentarNotif({
+    newsId,
+    komentarId: komentar.id,
+    commenterId: auth.session.anggotaId,
+    commenterName: komentar.penulis.nama,
+    resolvedParentId,
+    targetAnggotaId: typeof targetId === "number" ? targetId : undefined,
+  });
+
   return NextResponse.json(komentar, { status: 201 });
+}
+
+// ── Helper notifikasi ────────────────────────────────────────────────────────
+
+async function sendKomentarNotif({
+  newsId,
+  komentarId,
+  commenterId,
+  commenterName,
+  resolvedParentId,
+  targetAnggotaId,
+}: {
+  newsId: number;
+  komentarId: number;
+  commenterId: number;
+  commenterName: string;
+  resolvedParentId: number | null;
+  targetAnggotaId?: number;
+}) {
+  try {
+    if (resolvedParentId === null) {
+      // Komentar baru → notif ke penulis artikel
+      const news = await prisma.news.findUnique({
+        where: { id: newsId },
+        select: { judul: true, penulisId: true },
+      });
+      if (!news || news.penulisId === commenterId) return;
+
+      await prisma.notifikasi.create({
+        data: {
+          anggotaId: news.penulisId,
+          tipe: "KOMENTAR_ARTIKEL",
+          referensiId: komentarId,
+          newsId,
+          judul: news.judul,
+          pesan: `${commenterName} mengomentari artikel kamu.`,
+          dibaca: false,
+        },
+      });
+    } else {
+      // Balasan → notif ke orang yang di-reply
+      let recipientId: number;
+      if (targetAnggotaId !== undefined && targetAnggotaId !== commenterId) {
+        recipientId = targetAnggotaId;
+      } else {
+        const parentKomentar = await prisma.komentar.findUnique({
+          where: { id: resolvedParentId },
+          select: { penulisId: true },
+        });
+        if (!parentKomentar || parentKomentar.penulisId === commenterId) return;
+        recipientId = parentKomentar.penulisId;
+      }
+
+      const news = await prisma.news.findUnique({
+        where: { id: newsId },
+        select: { judul: true },
+      });
+      if (!news) return;
+
+      await prisma.notifikasi.create({
+        data: {
+          anggotaId: recipientId,
+          tipe: "KOMENTAR_BALASAN",
+          referensiId: komentarId,
+          newsId,
+          judul: news.judul,
+          pesan: `${commenterName} membalas komentar kamu di artikel ini.`,
+          dibaca: false,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[sendKomentarNotif]", err);
+  }
 }

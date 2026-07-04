@@ -1,4 +1,8 @@
-export type TipeNotif = "IURAN_TAGIHAN" | "IURAN_LUNAS";
+export type TipeNotif =
+  | "IURAN_TAGIHAN"
+  | "IURAN_LUNAS"
+  | "KOMENTAR_ARTIKEL"
+  | "KOMENTAR_BALASAN";
 
 export interface Notifikasi {
   id: number;
@@ -8,5 +12,6 @@ export interface Notifikasi {
   pesan: string;
   dibaca: boolean;
   referensiId: number;
+  newsId: number | null;
   createdAt: string;
 }

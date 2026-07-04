@@ -80,4 +80,10 @@ export async function fetchNewsPaginated(filter: {
   return res.json();
 }
 
+export async function fetchNewsById(id: number): Promise<News> {
+  const res = await fetchClient(`/api/news/${id}`);
+  if (!res.ok) throw await toError(res, "Gagal memuat berita");
+  return res.json();
+}
+
 export const NEWS_KEY = ["news"] as const;

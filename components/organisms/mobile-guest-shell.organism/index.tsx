@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchNews, NEWS_KEY } from "@/modules";
+import { fetchNews, NEWS_KEY, type Notifikasi } from "@/modules";
 import { HomeTab } from "./home-tab";
 import { NewsTab } from "./news-tab";
 import { IuranTab } from "./iuran-tab";
@@ -47,6 +47,7 @@ export function MobileGuestShell({
 }: Props) {
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
+  const [pendingArticleId, setPendingArticleId] = React.useState<number | null>(null);
 
   const {
     data: allNews = [],
@@ -67,6 +68,12 @@ export function MobileGuestShell({
       )
     : allNews;
 
+  function handleNotifClick(notif: Notifikasi) {
+    const articleId = notif.newsId ?? notif.referensiId;
+    setTab("news");
+    setPendingArticleId(articleId);
+  }
+
   return (
     <div className="relative flex w-full md:w-97.5 flex-col overflow-hidden bg-zinc-50 h-screen">
       {tab === "home" && (
@@ -81,10 +88,19 @@ export function MobileGuestShell({
           rest={rest}
           q={q}
           onQChange={setQ}
+          onNotifClick={handleNotifClick}
         />
       )}
 
-      {tab === "news" && <NewsTab role={role} myAnggotaId={myAnggotaId} />}
+      {tab === "news" && (
+        <NewsTab
+          role={role}
+          myAnggotaId={myAnggotaId}
+          onNotifClick={handleNotifClick}
+          pendingArticleId={pendingArticleId}
+          onArticleOpened={() => setPendingArticleId(null)}
+        />
+      )}
 
       {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}
 
