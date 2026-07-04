@@ -13,6 +13,7 @@ function selectNews(anggotaId: number) {
     judul: true,
     konten: true,
     bannerUrl: true,
+    kategori: true,
     createdAt: true,
     updatedAt: true,
     penulis: { select: { id: true, nama: true, role: true } },

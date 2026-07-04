@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchNews, NEWS_KEY, type Notifikasi } from "@/modules";
@@ -33,22 +34,14 @@ export type IuranItem = {
 type Props = {
   firstName: string;
   role: string;
-  myAnggotaId: number;
   profile: ProfileData;
   iuran: IuranItem[];
 };
 
-export function MobileGuestShell({
-  firstName,
-  role,
-  myAnggotaId,
-  profile,
-  iuran,
-}: Props) {
+export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
+  const router = useRouter();
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
-  const [pendingArticleId, setPendingArticleId] = React.useState<number | null>(null);
-  const [pendingKomentarId, setPendingKomentarId] = React.useState<number | null>(null);
 
   const {
     data: allNews = [],
@@ -71,9 +64,13 @@ export function MobileGuestShell({
 
   function handleNotifClick(notif: Notifikasi) {
     const articleId = notif.newsId ?? notif.referensiId;
-    setTab("news");
-    setPendingArticleId(articleId);
-    setPendingKomentarId(notif.tipe === "KOMENTAR_BALASAN" ? notif.referensiId : null);
+    const komentarId =
+      notif.tipe === "KOMENTAR_BALASAN" ? notif.referensiId : null;
+    router.push(
+      komentarId
+        ? `/guest/news/${articleId}?komentar=${komentarId}`
+        : `/guest/news/${articleId}`,
+    );
   }
 
   return (
@@ -82,7 +79,6 @@ export function MobileGuestShell({
         <HomeTab
           firstName={firstName}
           role={role}
-          myAnggotaId={myAnggotaId}
           isPending={isPending}
           isError={isError}
           filtered={filtered}
@@ -95,17 +91,7 @@ export function MobileGuestShell({
       )}
 
       {tab === "news" && (
-        <NewsTab
-          role={role}
-          myAnggotaId={myAnggotaId}
-          onNotifClick={handleNotifClick}
-          pendingArticleId={pendingArticleId}
-          pendingKomentarId={pendingKomentarId}
-          onArticleOpened={() => {
-            setPendingArticleId(null);
-            setPendingKomentarId(null);
-          }}
-        />
+        <NewsTab role={role} onNotifClick={handleNotifClick} />
       )}
 
       {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}

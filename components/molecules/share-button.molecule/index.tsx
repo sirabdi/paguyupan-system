@@ -1,10 +1,18 @@
 "use client";
 
-import { Share2Icon, CopyIcon, CheckIcon } from "lucide-react";
+import { Share2Icon, CheckIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function ShareButton({ title, newsId }: { title: string; newsId: number }) {
+// Membagikan tautan publik berita (/news/:id) via Web Share API,
+// fallback salin ke clipboard.
+export function ShareButton({
+  title,
+  newsId,
+}: {
+  title: string;
+  newsId: number;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
@@ -14,12 +22,12 @@ export function ShareButton({ title, newsId }: { title: string; newsId: number }
       try {
         await navigator.share({ title, url });
       } catch {
-        // user cancel — ignore
+        // user cancel — abaikan
       }
       return;
     }
 
-    // Fallback: copy to clipboard
+    // Fallback: salin ke clipboard
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -32,8 +40,9 @@ export function ShareButton({ title, newsId }: { title: string; newsId: number }
 
   return (
     <button
+      type="button"
       onClick={handleShare}
-      className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
+      className="flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-200"
     >
       {copied ? (
         <CheckIcon className="size-3.5 text-green-600" />

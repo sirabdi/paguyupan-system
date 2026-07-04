@@ -1,18 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { InboxIcon } from "lucide-react";
 
 import {
   fetchNewsPaginated,
-  fetchNewsById,
   NEWS_KEY,
   KATEGORI_LABEL,
   type KategoriNews,
   type Notifikasi,
 } from "@/modules";
-import { NewsDetailSheet, SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
+import { SmallCard, SearchBar, HeaderActions } from "@/components/molecules";
 import { Button } from "@/components/atoms";
 import { useDebounced } from "@/utils";
 
@@ -25,21 +24,10 @@ const FILTER_OPTIONS: { label: string; value: KategoriNews | undefined }[] = [
 
 type Props = {
   role: string;
-  myAnggotaId: number;
   onNotifClick: (notif: Notifikasi) => void;
-  pendingArticleId: number | null;
-  pendingKomentarId: number | null;
-  onArticleOpened: () => void;
 };
 
-export function NewsTab({
-  role,
-  myAnggotaId,
-  onNotifClick,
-  pendingArticleId,
-  pendingKomentarId,
-  onArticleOpened,
-}: Props) {
+export function NewsTab({ role, onNotifClick }: Props) {
   const [q, setQ] = React.useState("");
   const [kategori, setKategori] = React.useState<KategoriNews | undefined>(undefined);
   const debouncedQ = useDebounced(q, 300);
@@ -55,13 +43,6 @@ export function NewsTab({
     queryFn: ({ pageParam }) => fetchNewsPaginated({ q: debouncedQ, page: pageParam, kategori }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
-  });
-
-  // Fetch artikel spesifik ketika ada notif yang diklik
-  const { data: pendingArticle } = useQuery({
-    queryKey: [...NEWS_KEY, "detail", pendingArticleId],
-    queryFn: () => fetchNewsById(pendingArticleId!),
-    enabled: pendingArticleId !== null,
   });
 
   const allNews = data?.pages.flatMap((p) => p.data) ?? [];
@@ -122,7 +103,7 @@ export function NewsTab({
         ) : (
           <div className="flex flex-col gap-3">
             {allNews.map((n) => (
-              <SmallCard key={n.id} news={n} myAnggotaId={myAnggotaId} />
+              <SmallCard key={n.id} news={n} />
             ))}
 
             {hasNextPage && (
@@ -140,17 +121,6 @@ export function NewsTab({
           </div>
         )}
       </div>
-
-      {/* Auto-open artikel dari klik notifikasi */}
-      {pendingArticle && (
-        <NewsDetailSheet
-          news={pendingArticle}
-          myAnggotaId={myAnggotaId}
-          autoOpenComments
-          pendingKomentarId={pendingKomentarId}
-          onClose={onArticleOpened}
-        />
-      )}
     </div>
   );
 }

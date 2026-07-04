@@ -30,7 +30,6 @@ export default async function GuestPage() {
       <MobileGuestShell
         firstName={firstName}
         role={session.role}
-        myAnggotaId={session.anggotaId}
         profile={{
           nama: anggota?.nama ?? "-",
           email: anggota?.email ?? "-",
