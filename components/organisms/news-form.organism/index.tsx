@@ -58,15 +58,10 @@ export function NewsForm({ news }: { news?: News }) {
   const [bannerUploading, setBannerUploading] = React.useState(false);
 
   const {
-    register,
     handleSubmit,
     control,
-    setValue,
-    watch,
     formState: { errors, isValid },
   } = useNewsForm(news);
-
-  const bannerUrl = watch("bannerUrl");
 
   const mutation = useMutation({
     mutationFn: (input: {
@@ -86,27 +81,6 @@ export function NewsForm({ news }: { news?: News }) {
   });
 
   const saving = mutation.isPending;
-
-  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error(
-        "Hanya gambar JPEG, PNG, WebP, GIF, atau AVIF yang diizinkan",
-      );
-      return;
-    }
-    setBannerUploading(true);
-    try {
-      const url = await uploadBanner(file);
-      setValue("bannerUrl", url);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal upload banner");
-    } finally {
-      setBannerUploading(false);
-    }
-  }
 
   return (
     <form
@@ -139,12 +113,18 @@ export function NewsForm({ news }: { news?: News }) {
           <Label htmlFor="judul" className="text-sm font-medium">
             Judul <span className="text-destructive">*</span>
           </Label>
-          <Input
-            id="judul"
-            placeholder="Judul berita"
-            className="h-10 text-sm"
-            autoFocus
-            {...register("judul")}
+          <Controller
+            control={control}
+            name="judul"
+            render={({ field }) => (
+              <Input
+                id="judul"
+                placeholder="Judul berita"
+                className="h-10 text-sm"
+                autoFocus
+                {...field}
+              />
+            )}
           />
           {errors.judul && (
             <p className="text-xs text-destructive">{errors.judul.message}</p>
@@ -162,11 +142,13 @@ export function NewsForm({ news }: { news?: News }) {
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger id="kategori" className="h-10 w-full">
-                  <SelectValue placeholder="Pilih kategori" />
+                  <SelectValue placeholder="Pilih kategori">
+                    {field.value ? KATEGORI_LABEL[field.value] : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {KATEGORI_OPTIONS.map((k) => (
-                    <SelectItem key={k} value={k}>
+                    <SelectItem key={k} value={k} label={KATEGORI_LABEL[k]}>
                       {KATEGORI_LABEL[k]}
                     </SelectItem>
                   ))}
@@ -189,69 +171,93 @@ export function NewsForm({ news }: { news?: News }) {
               Opsional · maks. 5 MB
             </span>
           </Label>
+          <Controller
+            control={control}
+            name="bannerUrl"
+            render={({ field }) => (
+              <>
+                {field.value ? (
+                  <div className="relative overflow-hidden rounded-xl border bg-muted">
+                    <div className="h-64 w-full sm:h-80">
+                      <img
+                        src={field.value}
+                        alt="Banner preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={bannerUploading}
+                        className="bg-background/80 backdrop-blur"
+                      >
+                        {bannerUploading ? (
+                          <Loader2Icon className="animate-spin" />
+                        ) : (
+                          <UploadIcon />
+                        )}
+                        Ganti
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon-sm"
+                        onClick={() => field.onChange(null)}
+                        aria-label="Hapus banner"
+                        className="bg-destructive/80 text-white backdrop-blur"
+                      >
+                        <XIcon />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={bannerUploading}
+                    className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50 sm:h-56"
+                  >
+                    {bannerUploading ? (
+                      <Loader2Icon className="size-7 animate-spin" />
+                    ) : (
+                      <UploadIcon className="size-7" />
+                    )}
+                    <span className="text-sm font-medium">
+                      {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
+                    </span>
+                    <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
+                  </button>
+                )}
 
-          {bannerUrl ? (
-            <div className="relative overflow-hidden rounded-xl border bg-muted">
-              <div className="h-64 w-full sm:h-80">
-                <img
-                  src={bannerUrl}
-                  alt="Banner preview"
-                  className="h-full w-full object-cover"
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    e.target.value = "";
+                    if (!ALLOWED_TYPES.includes(file.type)) {
+                      toast.error("Hanya gambar JPEG, PNG, WebP, GIF, atau AVIF yang diizinkan");
+                      return;
+                    }
+                    setBannerUploading(true);
+                    try {
+                      const url = await uploadBanner(file);
+                      field.onChange(url);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Gagal upload banner");
+                    } finally {
+                      setBannerUploading(false);
+                    }
+                  }}
                 />
-              </div>
-              <div className="absolute top-3 right-3 flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => bannerInputRef.current?.click()}
-                  disabled={bannerUploading}
-                  className="bg-background/80 backdrop-blur"
-                >
-                  {bannerUploading ? (
-                    <Loader2Icon className="animate-spin" />
-                  ) : (
-                    <UploadIcon />
-                  )}
-                  Ganti
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon-sm"
-                  onClick={() => setValue("bannerUrl", null)}
-                  aria-label="Hapus banner"
-                  className="bg-destructive/80 text-white backdrop-blur"
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => bannerInputRef.current?.click()}
-              disabled={bannerUploading}
-              className="flex h-48 w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-input bg-muted/30 text-muted-foreground transition-colors hover:border-ring hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50 sm:h-56"
-            >
-              {bannerUploading ? (
-                <Loader2Icon className="size-7 animate-spin" />
-              ) : (
-                <UploadIcon className="size-7" />
-              )}
-              <span className="text-sm font-medium">
-                {bannerUploading ? "Mengupload…" : "Klik untuk upload banner"}
-              </span>
-              <span className="text-xs">JPEG, PNG, WebP, GIF, AVIF</span>
-            </button>
-          )}
-
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleBannerChange}
+              </>
+            )}
           />
         </div>
 

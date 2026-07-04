@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ClockIcon, NewspaperIcon } from "lucide-react";
+import { ChevronLeft, ClockIcon, NewspaperIcon, Share2Icon, CheckIcon } from "lucide-react";
+import { toast } from "sonner";
 
 import { type News, type KategoriNews, KATEGORI_LABEL } from "@/modules";
 import { formatDate, stripHtml } from "@/utils";
@@ -14,7 +15,9 @@ const KATEGORI_STYLE: Record<KategoriNews, string> = {
 
 function KategoriTag({ kategori }: { kategori: KategoriNews }) {
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide ${KATEGORI_STYLE[kategori]}`}>
+    <span
+      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold w-fit ${KATEGORI_STYLE[kategori]}`}
+    >
       {KATEGORI_LABEL[kategori]}
     </span>
   );
@@ -114,6 +117,24 @@ function NewsDetailSheet({
   news: News;
   onClose: () => void;
 }) {
+  const [copied, setCopied] = React.useState(false);
+
+  async function handleShare() {
+    const url = `${window.location.origin}/news/${news.id}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: news.judul, url }); } catch { /* user cancel */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link disalin ke clipboard");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Gagal menyalin link");
+    }
+  }
+
   return (
     <div
       className="absolute inset-0 z-50 flex flex-col bg-white"
@@ -126,9 +147,16 @@ function NewsDetailSheet({
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="truncate text-sm font-semibold text-zinc-800">
+        <span className="flex-1 truncate text-sm font-semibold text-zinc-800">
           {news.judul}
         </span>
+        <button
+          onClick={handleShare}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          aria-label="Bagikan"
+        >
+          {copied ? <CheckIcon size={15} className="text-green-600" /> : <Share2Icon size={15} />}
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
