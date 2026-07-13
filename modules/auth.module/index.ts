@@ -1,6 +1,6 @@
 import { fetchClient, toError } from "@/lib/fetch-client";
 
-export type Role = "ADMIN" | "SEKERTARIS" | "BENDAHARA" | "ANGGOTA";
+export type Role = "SUPERADMIN" | "ADMIN" | "SEKERTARIS" | "BENDAHARA" | "ANGGOTA";
 
 export interface AuthUser {
   id: number;

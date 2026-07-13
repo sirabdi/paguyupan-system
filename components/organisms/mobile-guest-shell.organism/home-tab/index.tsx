@@ -1,6 +1,7 @@
 "use client";
 
-import { InboxIcon } from "lucide-react";
+import { InboxIcon, MapPinIcon } from "lucide-react";
+import { Badge } from "@/components/atoms";
 
 import { type News, type Notifikasi } from "@/modules";
 import {
@@ -13,6 +14,7 @@ import {
 type Props = {
   firstName: string;
   role: string;
+  komunitasNama: string | null;
   isPending: boolean;
   isError: boolean;
   filtered: News[];
@@ -26,6 +28,7 @@ type Props = {
 export function HomeTab({
   firstName,
   role,
+  komunitasNama,
   isPending,
   isError,
   filtered,
@@ -41,7 +44,15 @@ export function HomeTab({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-zinc-900">Berita Terkini</h1>
-            <p className="text-xs text-zinc-400">Hai, {firstName}</p>
+            <div className="mt-1 flex items-center gap-2">
+              <p className="text-xs text-zinc-400">Hai, {firstName}</p>
+              {komunitasNama && (
+                <Badge variant="secondary" className="gap-1">
+                  <MapPinIcon className="size-3 shrink-0" />
+                  <span className="truncate">{komunitasNama}</span>
+                </Badge>
+              )}
+            </div>
           </div>
           <HeaderActions role={role} onNotifClick={onNotifClick} />
         </div>
@@ -65,11 +76,11 @@ export function HomeTab({
             ))}
           </div>
         ) : isError ? (
-          <div className="flex flex-col items-center gap-2 py-16 text-center text-zinc-400">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-zinc-400">
             <p className="text-sm">Gagal memuat berita.</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center text-zinc-400">
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-zinc-400">
             <InboxIcon className="size-10" />
             <p className="text-sm">
               {q ? "Tidak ada berita yang cocok." : "Belum ada berita."}

@@ -1,8 +1,9 @@
 "use client";
 
+import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
-import { Loader2Icon } from "lucide-react";
+import { Loader2Icon, EyeIcon, EyeOffIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -20,7 +21,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea,
 } from "@/components/atoms";
 
 import {
@@ -52,6 +52,7 @@ export function AnggotaFormDialog({
   const isEdit = Boolean(anggota);
   const canEditPassword = !isEdit || anggota?.id === currentUserId;
   const queryClient = useQueryClient();
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const {
     register,
@@ -106,143 +107,178 @@ export function AnggotaFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="-mx-1 grid min-h-0 flex-1 gap-4 overflow-y-auto px-1">
-          <div className="grid gap-2">
-            <Label htmlFor="nama">
-              Nama <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="nama"
-              placeholder="Nama lengkap"
-              autoFocus
-              {...register("nama")}
-            />
-            {errors.nama && (
-              <p className="text-xs text-destructive">{errors.nama.message}</p>
+          <div className="-mx-1 grid min-h-0 flex-1 gap-4 overflow-y-auto px-1 pb-4">
+            <div className="grid gap-1">
+              <Label className="gap-0.5" htmlFor="nama">
+                Nama <span className="text-destructive ml-0.5">*</span>
+              </Label>
+              <Input
+                id="nama"
+                placeholder="Nama lengkap"
+                autoFocus
+                {...register("nama")}
+              />
+              {errors.nama && (
+                <p className="text-xs text-destructive">
+                  {errors.nama.message}
+                </p>
+              )}
+            </div>
+
+            <div className="grid items-start gap-2 sm:grid-cols-2">
+              <div className="grid gap-1">
+                <Label className="gap-0.5" htmlFor="email">
+                  Email <span className="text-destructive ml-0.5">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="nama@email.com"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-xs text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="grid gap-1">
+                <Label className="gap-0.5" htmlFor="noTelp">
+                  No. Telepon <span className="text-destructive ml-0.5">*</span>
+                </Label>
+                <Input
+                  id="noTelp"
+                  inputMode="tel"
+                  placeholder="08xxxxxxxxxx"
+                  {...register("noTelp")}
+                />
+                {errors.noTelp && (
+                  <p className="text-xs text-destructive">
+                    {errors.noTelp.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {canEditPassword && (
+              <div className="grid gap-1">
+                <Label className="gap-0.5" htmlFor="password">
+                  Password
+                  {!isEdit && (
+                    <span className="text-destructive ml-0.5">*</span>
+                  )}
+                  {isEdit && (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      (kosongkan jika tidak diubah)
+                    </span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={isEdit ? "••••••••" : "Min. 8 karakter"}
+                    autoComplete="new-password"
+                    className="pr-10"
+                    {...register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-zinc-400 hover:text-zinc-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="size-4" />
+                    ) : (
+                      <EyeIcon className="size-4" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-xs text-destructive">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
             )}
-          </div>
 
-          <div className="grid items-start gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-1">
+                <Label>Role</Label>
+                <Controller
+                  control={control}
+                  name="role"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {(value) => (value ? ROLE_LABEL[value as Role] : "")}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">
+                          {ROLE_LABEL.ADMIN}
+                        </SelectItem>
+                        <SelectItem value="SEKERTARIS">
+                          {ROLE_LABEL.SEKERTARIS}
+                        </SelectItem>
+                        <SelectItem value="BENDAHARA">
+                          {ROLE_LABEL.BENDAHARA}
+                        </SelectItem>
+                        <SelectItem value="ANGGOTA">
+                          {ROLE_LABEL.ANGGOTA}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <Label>Status</Label>
+                <Controller
+                  control={control}
+                  name="status"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {(value) =>
+                            value ? STATUS_LABEL[value as StatusAnggota] : ""
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AKTIF">
+                          {STATUS_LABEL.AKTIF}
+                        </SelectItem>
+                        <SelectItem value="NONAKTIF">
+                          {STATUS_LABEL.NONAKTIF}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-1">
+              <Label className="gap-0.5" htmlFor="alamat">
+                No. Rumah <span className="text-destructive ml-0.5">*</span>
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="nama@email.com"
-                {...register("email")}
+                id="alamat"
+                inputMode="numeric"
+                placeholder="Contoh: 29"
+                {...register("alamat")}
               />
-              {errors.email && (
+              {errors.alamat && (
                 <p className="text-xs text-destructive">
-                  {errors.email.message}
+                  {errors.alamat.message}
                 </p>
               )}
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="noTelp">No. Telepon</Label>
-              <Input
-                id="noTelp"
-                inputMode="tel"
-                placeholder="08xxxxxxxxxx"
-                {...register("noTelp")}
-              />
-            </div>
-          </div>
-
-          {canEditPassword && (
-            <div className="grid gap-2">
-              <Label htmlFor="password">
-                Password
-                {!isEdit && <span className="text-destructive"> *</span>}
-                {isEdit && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    (kosongkan jika tidak diubah)
-                  </span>
-                )}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder={isEdit ? "••••••••" : "Min. 8 karakter"}
-                autoComplete="new-password"
-                {...register("password")}
-              />
-              {errors.password && (
-                <p className="text-xs text-destructive">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>Role</Label>
-              <Controller
-                control={control}
-                name="role"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {(value) => (value ? ROLE_LABEL[value as Role] : "")}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">{ROLE_LABEL.ADMIN}</SelectItem>
-                      <SelectItem value="SEKERTARIS">
-                        {ROLE_LABEL.SEKERTARIS}
-                      </SelectItem>
-                      <SelectItem value="BENDAHARA">
-                        {ROLE_LABEL.BENDAHARA}
-                      </SelectItem>
-                      <SelectItem value="ANGGOTA">
-                        {ROLE_LABEL.ANGGOTA}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Controller
-                control={control}
-                name="status"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {(value) =>
-                          value ? STATUS_LABEL[value as StatusAnggota] : ""
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="AKTIF">
-                        {STATUS_LABEL.AKTIF}
-                      </SelectItem>
-                      <SelectItem value="NONAKTIF">
-                        {STATUS_LABEL.NONAKTIF}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="alamat">Alamat</Label>
-            <Textarea
-              id="alamat"
-              placeholder="Alamat domisili"
-              rows={3}
-              {...register("alamat")}
-            />
-          </div>
           </div>
 
           <DialogFooter className="shrink-0">

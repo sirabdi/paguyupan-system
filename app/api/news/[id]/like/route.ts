@@ -22,7 +22,13 @@ export async function POST(_req: Request, { params }: RouteContext) {
   if (existing) {
     await prisma.like.delete({ where: { id: existing.id } });
   } else {
-    await prisma.like.create({ data: { newsId, anggotaId: auth.session.anggotaId } });
+    await prisma.like.create({
+      data: {
+        newsId,
+        anggotaId: auth.session.anggotaId,
+        komunitasId: auth.session.komunitasId ?? undefined,
+      },
+    });
   }
 
   const count = await prisma.like.count({ where: { newsId } });

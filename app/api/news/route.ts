@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireNewsEditor } from "@/lib/auth";
+import { requireAuth, requireNewsEditor, komunitasFilter } from "@/lib/auth";
 import type { KategoriNews } from "@/modules/news.module";
 
 const VALID_KATEGORI: KategoriNews[] = ["UNDANGAN", "BERITA", "PENGUMUMAN"];
@@ -58,6 +58,7 @@ export async function GET(req: Request) {
     VALID_KATEGORI.includes(kategoriParam as KategoriNews) ? (kategoriParam as KategoriNews) : undefined;
 
   const where = {
+    ...komunitasFilter(auth.session),
     ...(q ? { judul: { contains: q } } : {}),
     ...(resolvedKategoriFilter ? { kategori: resolvedKategoriFilter } : {}),
   };
@@ -134,6 +135,7 @@ export async function POST(req: Request) {
       bannerUrl: typeof bannerUrl === "string" ? bannerUrl : null,
       kategori: resolvedKategori,
       penulisId: auth.session.anggotaId,
+      komunitasId: auth.session.komunitasId ?? undefined,
     },
     select: selectNews(auth.session.anggotaId),
   });

@@ -1,4 +1,5 @@
 export * from "./anggota-card.molecule";
+export * from "./komunitas-card.molecule";
 export * from "./anggota-form-dialog.molecule";
 export * from "./header-action.molecule";
 export * from "./iuran-card.molecule";

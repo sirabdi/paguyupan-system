@@ -1,7 +1,7 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import type { Role } from "@prisma/client";
+import type { Role } from "@/modules/auth.module";
 import { prisma } from "@/lib/prisma";
 
 const SESSION_COOKIE = "session";
@@ -11,6 +11,7 @@ export type SessionPayload = {
   anggotaId: number;
   role: Role;
   sessionId: string;
+  komunitasId: number | null; // null untuk SUPERADMIN
 };
 
 function getEncodedKey() {

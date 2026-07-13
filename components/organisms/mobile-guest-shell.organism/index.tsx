@@ -21,6 +21,7 @@ export type ProfileData = {
   alamat: string | null;
   noTelp: string | null;
   tanggalGabung: string | null;
+  alamatInduk: string | null;
 };
 
 export type IuranItem = {
@@ -34,11 +35,12 @@ export type IuranItem = {
 type Props = {
   firstName: string;
   role: string;
+  komunitasNama: string | null;
   profile: ProfileData;
   iuran: IuranItem[];
 };
 
-export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
+export function MobileGuestShell({ firstName, role, komunitasNama, profile, iuran }: Props) {
   const router = useRouter();
   const [tab, setTab] = React.useState<Tab>("home");
   const [q, setQ] = React.useState("");
@@ -79,6 +81,7 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
         <HomeTab
           firstName={firstName}
           role={role}
+          komunitasNama={komunitasNama}
           isPending={isPending}
           isError={isError}
           filtered={filtered}
@@ -91,12 +94,12 @@ export function MobileGuestShell({ firstName, role, profile, iuran }: Props) {
       )}
 
       {tab === "news" && (
-        <NewsTab role={role} onNotifClick={handleNotifClick} />
+        <NewsTab role={role} komunitasNama={komunitasNama} onNotifClick={handleNotifClick} />
       )}
 
-      {tab === "iuran" && <IuranTab iuran={iuran} role={role} />}
+      {tab === "iuran" && <IuranTab iuran={iuran} role={role} komunitasNama={komunitasNama} />}
 
-      {tab === "profile" && <ProfileTab role={role} profile={profile} />}
+      {tab === "profile" && <ProfileTab role={role} profile={profile} komunitasNama={komunitasNama} />}
 
       <BottomNav active={tab} onChange={setTab} />
     </div>

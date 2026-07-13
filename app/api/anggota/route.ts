@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireAdmin, requireAuth, komunitasFilter } from "@/lib/auth";
 
 // GET /api/anggota?status=AKTIF&q=budi&page=1
 export async function GET(req: Request) {
@@ -14,6 +14,7 @@ export async function GET(req: Request) {
   const pageStr = searchParams.get("page");
 
   const where: Prisma.AnggotaWhereInput = {
+    ...komunitasFilter(auth.session),
     ...(status === "AKTIF" || status === "NONAKTIF" ? { status } : {}),
     ...(q ? { nama: { contains: q } } : {}),
   };
@@ -103,6 +104,37 @@ export async function POST(req: Request) {
     ? (role as (typeof validRoles)[number])
     : "ANGGOTA";
 
+  // Cek apakah email sudah terdaftar di komunitas lain
+  const komunitasId = auth.session.komunitasId ?? undefined;
+  const existingAnggota = await prisma.anggota.findUnique({
+    where: { email: (email as string).trim().toLowerCase() },
+    select: { komunitasId: true, komunitas: { select: { nama: true } } },
+  });
+  if (existingAnggota) {
+    if (existingAnggota.komunitasId !== null && existingAnggota.komunitasId !== komunitasId) {
+      const namaKomunitas = existingAnggota.komunitas?.nama ?? "komunitas lain";
+      return NextResponse.json(
+        { error: `Akun ini sudah terdaftar di komunitas "${namaKomunitas}"` },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 409 });
+  }
+
+  // Cek duplikat no. rumah dalam komunitas yang sama
+  if (typeof alamat === "string" && alamat.trim() && komunitasId) {
+    const dupAlamat = await prisma.anggota.findFirst({
+      where: { komunitasId, alamat: alamat.trim() },
+      select: { nama: true },
+    });
+    if (dupAlamat) {
+      return NextResponse.json(
+        { error: `No. rumah "${alamat.trim()}" sudah ditempati oleh ${dupAlamat.nama}` },
+        { status: 409 },
+      );
+    }
+  }
+
   const { hash } = await import("bcryptjs");
   const passwordHash = await hash(password, 12);
 
@@ -110,12 +142,13 @@ export async function POST(req: Request) {
     const anggota = await prisma.anggota.create({
       data: {
         nama: nama.trim(),
-        email: email.trim().toLowerCase(),
+        email: (email as string).trim().toLowerCase(),
         passwordHash,
         role: parsedRole,
         alamat: typeof alamat === "string" ? alamat : undefined,
         noTelp: typeof noTelp === "string" ? noTelp : undefined,
         status: status === "NONAKTIF" ? "NONAKTIF" : "AKTIF",
+        komunitasId,
       },
       select: {
         id: true,
@@ -129,14 +162,8 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(anggota, { status: 201 });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "Email sudah terdaftar" },
-        { status: 409 },
-      );
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 409 });
     }
     throw e;
   }

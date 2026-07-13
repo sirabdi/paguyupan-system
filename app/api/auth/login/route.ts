@@ -59,7 +59,18 @@ export async function POST(req: Request) {
     );
   }
 
-  const anggota = await prisma.anggota.findUnique({ where: { email } });
+  const anggota = await prisma.anggota.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      nama: true,
+      email: true,
+      role: true,
+      status: true,
+      passwordHash: true,
+      komunitasId: true,
+    },
+  });
 
   // Pesan error sama untuk email tidak ditemukan & password salah (hindari user enumeration)
   const invalidMsg = { error: "Email atau password salah" };
@@ -81,7 +92,11 @@ export async function POST(req: Request) {
 
   // Login berhasil — hapus attempt history dan buat session baru
   await clearAttempts(ip, email);
-  await createSession({ anggotaId: anggota.id, role: anggota.role });
+  await createSession({
+    anggotaId: anggota.id,
+    role: anggota.role,
+    komunitasId: anggota.komunitasId,
+  });
 
   return NextResponse.json({
     id: anggota.id,

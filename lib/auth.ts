@@ -22,24 +22,36 @@ export async function requireAuth(): Promise<AuthResult> {
   return { ok: true, session };
 }
 
-/** Pastikan request memiliki session dengan role tertentu. */
+/** Pastikan request memiliki session dengan role tertentu.
+ *  SUPERADMIN selalu lolos kecuali role list hanya berisi role non-SUPERADMIN. */
 export async function requireRole(...roles: Role[]): Promise<AuthResult> {
   const result = await requireAuth();
   if (!result.ok) return result;
 
-  if (!roles.includes(result.session.role)) {
+  const { role } = result.session;
+  if (role === "SUPERADMIN" || roles.includes(role)) return result;
+
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "Akses ditolak" }, { status: 403 }),
+  };
+}
+
+/** Shortcut: hanya SUPERADMIN. */
+export async function requireSuperAdmin(): Promise<AuthResult> {
+  const result = await requireAuth();
+  if (!result.ok) return result;
+
+  if (result.session.role !== "SUPERADMIN") {
     return {
       ok: false,
-      response: NextResponse.json(
-        { error: "Akses ditolak" },
-        { status: 403 }
-      ),
+      response: NextResponse.json({ error: "Akses ditolak" }, { status: 403 }),
     };
   }
   return result;
 }
 
-/** Shortcut: hanya Admin yang boleh. */
+/** Shortcut: hanya Admin komunitas yang boleh. */
 export async function requireAdmin(): Promise<AuthResult> {
   return requireRole("ADMIN");
 }
@@ -47,4 +59,13 @@ export async function requireAdmin(): Promise<AuthResult> {
 /** Shortcut: Admin dan Sekertaris boleh (CRUD news). */
 export async function requireNewsEditor(): Promise<AuthResult> {
   return requireRole("ADMIN", "SEKERTARIS");
+}
+
+/**
+ * Kembalikan filter Prisma `where` untuk komunitasId.
+ * SUPERADMIN tidak difilter (null = akses semua).
+ */
+export function komunitasFilter(session: SessionPayload): { komunitasId?: number } {
+  if (session.role === "SUPERADMIN" || session.komunitasId === null) return {};
+  return { komunitasId: session.komunitasId };
 }

@@ -14,7 +14,11 @@ export default async function GuestPage() {
 
   const anggota = await prisma.anggota.findUnique({
     where: { id: session.anggotaId },
-    select: { nama: true, email: true, emailVerifiedAt: true, passwordChangedAt: true, alamat: true, noTelp: true, tanggalGabung: true },
+    select: {
+      nama: true, email: true, emailVerifiedAt: true, passwordChangedAt: true,
+      alamat: true, noTelp: true, tanggalGabung: true,
+      komunitas: { select: { nama: true, tipe: true, alamatInduk: true } },
+    },
   });
 
   const iuran = await prisma.iuran.findMany({
@@ -24,12 +28,15 @@ export default async function GuestPage() {
   });
 
   const firstName = anggota?.nama.split(" ")[0] ?? "Anggota";
+  const komunitasNama = anggota?.komunitas?.nama ?? null;
+  const alamatInduk = anggota?.komunitas?.alamatInduk ?? null;
 
   return (
     <div className="flex h-screen items-center justify-center overflow-hidden bg-zinc-100">
       <MobileGuestShell
         firstName={firstName}
         role={session.role}
+        komunitasNama={komunitasNama}
         profile={{
           nama: anggota?.nama ?? "-",
           email: anggota?.email ?? "-",
@@ -38,6 +45,7 @@ export default async function GuestPage() {
           alamat: anggota?.alamat ?? null,
           noTelp: anggota?.noTelp ?? null,
           tanggalGabung: anggota?.tanggalGabung?.toISOString() ?? null,
+          alamatInduk,
         }}
         iuran={iuran.map((i) => ({
           id: i.id,

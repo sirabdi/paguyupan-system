@@ -90,6 +90,7 @@ export async function POST(req: Request, { params }: RouteContext) {
       penulisId: auth.session.anggotaId,
       konten: konten.trim(),
       parentId: resolvedParentId,
+      komunitasId: auth.session.komunitasId ?? undefined,
     },
     select: {
       id: true,
@@ -106,6 +107,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     commenterName: komentar.penulis.nama,
     resolvedParentId,
     targetAnggotaId: typeof targetId === "number" ? targetId : undefined,
+    komunitasId: auth.session.komunitasId ?? undefined,
   });
 
   return NextResponse.json(komentar, { status: 201 });
@@ -120,6 +122,7 @@ async function sendKomentarNotif({
   commenterName,
   resolvedParentId,
   targetAnggotaId,
+  komunitasId,
 }: {
   newsId: number;
   komentarId: number;
@@ -127,6 +130,7 @@ async function sendKomentarNotif({
   commenterName: string;
   resolvedParentId: number | null;
   targetAnggotaId?: number;
+  komunitasId?: number;
 }) {
   try {
     if (resolvedParentId === null) {
@@ -146,6 +150,7 @@ async function sendKomentarNotif({
           judul: news.judul,
           pesan: `${commenterName} mengomentari artikel kamu.`,
           dibaca: false,
+          komunitasId,
         },
       });
     } else {
@@ -177,6 +182,7 @@ async function sendKomentarNotif({
           judul: news.judul,
           pesan: `${commenterName} membalas komentar kamu di artikel ini.`,
           dibaca: false,
+          komunitasId,
         },
       });
     }

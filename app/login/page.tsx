@@ -60,8 +60,9 @@ export default function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: (data: { email: string; password: string }) =>
       login(data.email, data.password),
-    onSuccess: () => {
-      router.push("/guest");
+    onSuccess: (data) => {
+      if (data.role === "SUPERADMIN") router.push("/superadmin");
+      else router.push("/guest");
     },
     onError: (err: Error) => toast.error(err.message),
   });

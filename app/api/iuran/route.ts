@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, komunitasFilter } from "@/lib/auth";
 
 // GET /api/iuran?periode=2026-06&status=BELUM_BAYAR&page=1 — semua role login
 export async function GET(req: Request) {
@@ -14,6 +14,7 @@ export async function GET(req: Request) {
   const pageStr = searchParams.get("page");
 
   const where: Prisma.IuranWhereInput = {
+    ...komunitasFilter(auth.session),
     ...(periode ? { periode } : {}),
     ...(status === "BELUM_BAYAR" || status === "LUNAS" ? { status } : {}),
   };

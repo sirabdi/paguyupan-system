@@ -11,6 +11,9 @@ import {
   CalendarIcon,
   ShieldIcon,
   ShieldCheckIcon,
+  BuildingIcon,
+  MapIcon,
+  DoorOpenIcon,
 } from "lucide-react";
 
 import { logout } from "@/modules";
@@ -22,6 +25,7 @@ import { ROLE_LABEL, formatDateLong } from "@/utils";
 type Props = {
   role: string;
   profile: ProfileData;
+  komunitasNama: string | null;
 };
 
 type DetailRowProps = {
@@ -105,7 +109,7 @@ function DetailRow({ icon, label, value }: DetailRowProps) {
   );
 }
 
-export function ProfileTab({ role, profile }: Props) {
+export function ProfileTab({ role, profile, komunitasNama }: Props) {
   const router = useRouter();
   const [emailVerified, setEmailVerified] = React.useState(
     Boolean(profile.emailVerifiedAt),
@@ -161,8 +165,18 @@ export function ProfileTab({ role, profile }: Props) {
                 value={profile.noTelp}
               />
               <DetailRow
-                icon={<MapPinIcon className="size-4 text-zinc-500" />}
-                label="Alamat"
+                icon={<BuildingIcon className="size-4 text-zinc-500" />}
+                label="Komunitas"
+                value={komunitasNama}
+              />
+              <DetailRow
+                icon={<MapIcon className="size-4 text-zinc-500" />}
+                label="Alamat Induk"
+                value={profile.alamatInduk}
+              />
+              <DetailRow
+                icon={<DoorOpenIcon className="size-4 text-zinc-500" />}
+                label="No. Rumah"
                 value={profile.alamat}
               />
               <DetailRow

@@ -5,6 +5,8 @@ const SESSION_COOKIE = "session";
 const PUBLIC_ROUTES = ["/login"];
 const PUBLIC_PREFIXES = ["/news/"];
 
+const SUPERADMIN_PREFIX = "/superadmin";
+
 function getEncodedKey() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return null;
@@ -42,13 +44,16 @@ export default async function proxy(req: NextRequest) {
     return res;
   }
 
+  // Halaman /superadmin/* hanya untuk SUPERADMIN
+  if (path.startsWith(SUPERADMIN_PREFIX) && role !== "SUPERADMIN") {
+    return NextResponse.redirect(new URL("/login", req.nextUrl));
+  }
+
   // Sudah login tapi buka /login → arahkan sesuai role
   // (halaman publik seperti /news/[id] tetap bisa diakses meski sudah login)
   const isLoginPage = PUBLIC_ROUTES.includes(path);
   if (isLoginPage && isValidToken) {
-    let dest = "/guest";
-    if (role === "ADMIN") dest = "/anggota";
-    else if (role === "SEKERTARIS") dest = "/news";
+    const dest = role === "SUPERADMIN" ? "/superadmin" : "/guest";
     return NextResponse.redirect(new URL(dest, req.nextUrl));
   }
 

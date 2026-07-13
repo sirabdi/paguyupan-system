@@ -67,6 +67,26 @@ export async function PUT(req: Request, { params }: RouteContext) {
     passwordHash = await hash(password, 12);
   }
 
+  // Cek duplikat no. rumah dalam komunitas yang sama (exclude diri sendiri)
+  if (typeof alamat === "string" && alamat.trim()) {
+    const target = await prisma.anggota.findUnique({
+      where: { id: anggotaId },
+      select: { komunitasId: true },
+    });
+    if (target?.komunitasId) {
+      const dupAlamat = await prisma.anggota.findFirst({
+        where: { komunitasId: target.komunitasId, alamat: alamat.trim(), NOT: { id: anggotaId } },
+        select: { nama: true },
+      });
+      if (dupAlamat) {
+        return NextResponse.json(
+          { error: `No. rumah "${alamat.trim()}" sudah ditempati oleh ${dupAlamat.nama}` },
+          { status: 409 },
+        );
+      }
+    }
+  }
+
   try {
     const anggota = await prisma.anggota.update({
       where: { id: anggotaId },

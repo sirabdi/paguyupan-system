@@ -58,7 +58,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+    <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
       <InboxIcon className="size-10" />
       <p className="text-sm">Tidak ada data iuran untuk periode ini.</p>
     </div>
