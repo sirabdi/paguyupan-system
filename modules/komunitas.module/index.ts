@@ -16,6 +16,9 @@ export const STATUS_LABEL: Record<StatusKomunitas, string> = {
   SUSPEND: "Suspend",
 };
 
+// Opsi kuota jenis iuran tambahan yang bisa dipilih superadmin
+export const MAX_IURAN_TAMBAHAN_OPTIONS = [3, 6, 10] as const;
+
 export interface Komunitas {
   id: number;
   nama: string;
@@ -26,6 +29,7 @@ export interface Komunitas {
   status: StatusKomunitas;
   expiredAt: string | null;
   alamatInduk: string | null;
+  maxIuranTambahan: number;
   _count: { anggota: number };
   createdAt: string;
   updatedAt: string;
@@ -39,6 +43,7 @@ export interface KomunitasInput {
   durasiHari?: number | null;
   status?: StatusKomunitas;
   alamatInduk?: string | null;
+  maxIuranTambahan?: number;
 }
 
 const JSON_HEADERS = { "Content-Type": "application/json" };

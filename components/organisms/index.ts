@@ -2,6 +2,7 @@ export * from "./admin-form.organism";
 export * from "./anggota-table.organism";
 export * from "./komunitas-form.organism";
 export * from "./iuran-table.organism";
+export * from "./jenis-iuran-manager.organism";
 export * from "./mobile-guest-shell.organism";
 export * from "./mobile-shell.organism";
 export * from "./navbar.organism";

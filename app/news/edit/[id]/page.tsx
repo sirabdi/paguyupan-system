@@ -40,6 +40,7 @@ export default async function NewsEditPage({ params }: PageProps) {
   // Serialisasi Date ke string untuk client component
   const news: News = {
     ...raw,
+    penulis: raw.penulis ?? { id: 0, nama: "Pengguna dihapus", role: "ANGGOTA" },
     createdAt: raw.createdAt.toISOString(),
     updatedAt: raw.updatedAt.toISOString(),
     liked: false,

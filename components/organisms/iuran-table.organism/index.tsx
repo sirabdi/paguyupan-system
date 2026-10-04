@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { InboxIcon, RefreshCwIcon, SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,11 +34,13 @@ import {
   STATUS_IURAN_LABEL,
   bayarIuran,
   fetchIuranPaginated,
+  JENIS_IURAN_KEY,
+  fetchJenisIuran,
   type Iuran,
   type StatusIuranFilter,
 } from "@/modules";
 import { formatPeriode, generatePeriodes } from "@/utils";
-import { IuranCard, IuranSettingDialog } from "@/components/molecules";
+import { IuranCard } from "@/components/molecules";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -70,19 +78,42 @@ function EmptyState() {
 type Props = {
   /** Hanya Admin yang bisa menandai lunas; Bendahara read-only. */
   canBayar: boolean;
+  /** Hanya Admin yang bisa mengakses konfigurasi jenis iuran. */
+  canManageJenis?: boolean;
 };
 
-export function IuranTable({ canBayar }: Props) {
+// Filter jenis: "ALL" (semua) | "default" (bulanan) | id jenis iuran (string angka)
+type JenisFilter = "ALL" | "default" | string;
+
+export function IuranTable({
+  canBayar,
+  canManageJenis = false,
+}: Props) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [periode, setPeriode] = React.useState<string>(PERIODES[0]);
   const [status, setStatus] = React.useState<StatusIuranFilter>("ALL");
-  const [settingOpen, setSettingOpen] = React.useState(false);
+  const [jenisFilter, setJenisFilter] = React.useState<JenisFilter>("ALL");
   const [konfirmasiTarget, setKonfirmasiTarget] = React.useState<Iuran | null>(
     null,
   );
 
-  const filter = { periode, status };
+  const { data: jenisList = [] } = useQuery({
+    queryKey: JENIS_IURAN_KEY,
+    queryFn: fetchJenisIuran,
+  });
+
+  const filter = {
+    periode,
+    status,
+    jenisIuranId:
+      jenisFilter === "ALL"
+        ? undefined
+        : jenisFilter === "default"
+          ? ("default" as const)
+          : Number(jenisFilter),
+  };
   const {
     data,
     isPending,
@@ -94,9 +125,11 @@ export function IuranTable({ canBayar }: Props) {
     refetch,
   } = useInfiniteQuery({
     queryKey: [...IURAN_KEY, filter],
-    queryFn: ({ pageParam }) => fetchIuranPaginated({ ...filter, page: pageParam }),
+    queryFn: ({ pageParam }) =>
+      fetchIuranPaginated({ ...filter, page: pageParam }),
     initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.has_more ? lastPage.page + 1 : undefined,
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.page + 1 : undefined,
     placeholderData: (prev) => prev,
   });
 
@@ -130,14 +163,16 @@ export function IuranTable({ canBayar }: Props) {
               : `${total} tagihan · ${sudahBayar} lunas · ${belumBayar} belum`}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              aria-label="Atur iuran default"
-              onClick={() => setSettingOpen(true)}
-            >
-              <SettingsIcon />
-            </Button>
+            {canManageJenis && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/iuran/konfigurasi")}
+              >
+                <SettingsIcon />
+                Konfigurasi
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -166,23 +201,56 @@ export function IuranTable({ canBayar }: Props) {
             </SelectContent>
           </Select>
 
-          <Select
-            value={status}
-            onValueChange={(v) => setStatus(v as StatusIuranFilter)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>
-                {(v) => STATUS_FILTER_LABEL[(v as StatusIuranFilter) ?? "ALL"]}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{STATUS_FILTER_LABEL.ALL}</SelectItem>
-              <SelectItem value="BELUM_BAYAR">
-                {STATUS_FILTER_LABEL.BELUM_BAYAR}
-              </SelectItem>
-              <SelectItem value="LUNAS">{STATUS_FILTER_LABEL.LUNAS}</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select
+              value={status}
+              onValueChange={(v) => setStatus(v as StatusIuranFilter)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {(v) =>
+                    STATUS_FILTER_LABEL[(v as StatusIuranFilter) ?? "ALL"]
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{STATUS_FILTER_LABEL.ALL}</SelectItem>
+                <SelectItem value="BELUM_BAYAR">
+                  {STATUS_FILTER_LABEL.BELUM_BAYAR}
+                </SelectItem>
+                <SelectItem value="LUNAS">
+                  {STATUS_FILTER_LABEL.LUNAS}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={jenisFilter}
+              onValueChange={(v) => setJenisFilter(v as JenisFilter)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {jenisFilter === "ALL"
+                    ? "Semua jenis"
+                    : jenisFilter === "default"
+                      ? "Iuran Bulanan"
+                      : (jenisList.find((j) => String(j.id) === jenisFilter)
+                          ?.nama ?? "Jenis iuran")}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua jenis</SelectItem>
+                <SelectItem value="default">Iuran Bulanan</SelectItem>
+                {jenisList
+                  .filter((j) => !j.isDefault)
+                  .map((j) => (
+                    <SelectItem key={j.id} value={String(j.id)}>
+                      {j.nama}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -232,9 +300,6 @@ export function IuranTable({ canBayar }: Props) {
         </div>
       </div>
 
-      {/* Dialog atur iuran default */}
-      <IuranSettingDialog open={settingOpen} onOpenChange={setSettingOpen} />
-
       {/* Dialog konfirmasi bayar */}
       <AlertDialog
         open={konfirmasiTarget !== null}
@@ -252,7 +317,9 @@ export function IuranTable({ canBayar }: Props) {
               </span>{" "}
               periode{" "}
               <span className="font-medium text-foreground">
-                {konfirmasiTarget ? formatPeriode(konfirmasiTarget.periode) : ""}
+                {konfirmasiTarget
+                  ? formatPeriode(konfirmasiTarget.periode)
+                  : ""}
               </span>{" "}
               sebagai <span className="font-medium text-foreground">Lunas</span>
               ? Tindakan ini tidak dapat dibatalkan.

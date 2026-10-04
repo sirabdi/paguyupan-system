@@ -30,6 +30,8 @@ export type IuranItem = {
   jumlah: string; // Decimal sebagai string
   status: "BELUM_BAYAR" | "LUNAS";
   tanggalBayar: string | null;
+  jenisNama: string;
+  isDefault: boolean;
 };
 
 type Props = {

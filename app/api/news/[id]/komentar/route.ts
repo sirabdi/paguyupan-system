@@ -104,7 +104,7 @@ export async function POST(req: Request, { params }: RouteContext) {
     newsId,
     komentarId: komentar.id,
     commenterId: auth.session.anggotaId,
-    commenterName: komentar.penulis.nama,
+    commenterName: komentar.penulis?.nama ?? "Seseorang",
     resolvedParentId,
     targetAnggotaId: typeof targetId === "number" ? targetId : undefined,
     komunitasId: auth.session.komunitasId ?? undefined,
@@ -139,7 +139,7 @@ async function sendKomentarNotif({
         where: { id: newsId },
         select: { judul: true, penulisId: true },
       });
-      if (!news || news.penulisId === commenterId) return;
+      if (!news || news.penulisId === null || news.penulisId === commenterId) return;
 
       await prisma.notifikasi.create({
         data: {
@@ -163,7 +163,7 @@ async function sendKomentarNotif({
           where: { id: resolvedParentId },
           select: { penulisId: true },
         });
-        if (!parentKomentar || parentKomentar.penulisId === commenterId) return;
+        if (!parentKomentar || parentKomentar.penulisId === null || parentKomentar.penulisId === commenterId) return;
         recipientId = parentKomentar.penulisId;
       }
 

@@ -17,6 +17,7 @@ import {
 import {
   TIPE_LABEL,
   STATUS_LABEL,
+  MAX_IURAN_TAMBAHAN_OPTIONS,
   type KomunitasInput,
   type TipeKomunitas,
   type StatusKomunitas,
@@ -34,8 +35,9 @@ export const DURASI_OPTIONS: { label: string; days: number | null }[] = [
   { label: "3 Tahun", days: 1095 },
 ];
 
-type FormValues = Omit<KomunitasInput, "kode" | "durasiHari"> & {
+type FormValues = Omit<KomunitasInput, "kode" | "durasiHari" | "maxIuranTambahan"> & {
   durasi: string;
+  maxIuranTambahan: string;
 };
 
 export function KomunitasForm({
@@ -60,6 +62,7 @@ export function KomunitasForm({
       status: "TRIAL",
       alamatInduk: "",
       durasi: "null",
+      maxIuranTambahan: "3",
       ...defaultValues,
     },
   });
@@ -73,6 +76,7 @@ export function KomunitasForm({
       status: values.status,
       alamatInduk: values.alamatInduk,
       durasiHari: days,
+      maxIuranTambahan: Number(values.maxIuranTambahan),
     });
   }
 
@@ -203,6 +207,37 @@ export function KomunitasForm({
                     label={d.label}
                   >
                     {d.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-1">
+        <Label className="gap-0.5">Iuran Tambahan</Label>
+        <p className="text-[11px] text-zinc-400">
+          Batas jumlah jenis iuran tambahan yang bisa dibuat admin komunitas.
+        </p>
+        <Controller
+          control={control}
+          name="maxIuranTambahan"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger className="h-10 w-full">
+                <SelectValue placeholder="Pilih kuota">
+                  {field.value ? `${field.value} jenis iuran` : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {MAX_IURAN_TAMBAHAN_OPTIONS.map((n) => (
+                  <SelectItem
+                    key={n}
+                    value={String(n)}
+                    label={`${n} jenis iuran`}
+                  >
+                    {n} jenis iuran
                   </SelectItem>
                 ))}
               </SelectContent>

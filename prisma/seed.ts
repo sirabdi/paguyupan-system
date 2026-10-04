@@ -33,7 +33,7 @@ async function main() {
 
   const komRT01 = await prisma.komunitas.upsert({
     where: { kode: "RT01-RW05-CIBADAK" },
-    update: { durasiHari: 365 },
+    update: { durasiHari: 365, maxIuranTambahan: 6 },
     create: {
       nama: "RT 01 RW 05 Kel. Cibadak",
       tipe: "RT",
@@ -42,13 +42,14 @@ async function main() {
       durasiHari: 365,
       status: "TRIAL",
       alamatInduk: "Kel. Cibadak, Kec. Tanah Sareal, Kota Bogor",
+      maxIuranTambahan: 6,
     },
   });
   console.log(`  ✓ ${komRT01.nama} (${komRT01.tipe}) — durasi: ${komRT01.durasiHari} hari`);
 
   const komRW05 = await prisma.komunitas.upsert({
     where: { kode: "RW05-CIBADAK" },
-    update: { durasiHari: 730 },
+    update: { durasiHari: 730, maxIuranTambahan: 10 },
     create: {
       nama: "RW 05 Kel. Cibadak",
       tipe: "RW",
@@ -57,6 +58,7 @@ async function main() {
       durasiHari: 730,
       status: "TRIAL",
       alamatInduk: "Kel. Cibadak, Kec. Tanah Sareal, Kota Bogor",
+      maxIuranTambahan: 10,
     },
   });
   console.log(`  ✓ ${komRW05.nama} (${komRW05.tipe}) — durasi: ${komRW05.durasiHari} hari`);
@@ -166,8 +168,8 @@ async function main() {
     console.log(`  ✓ ${result.nama} (${result.role}) — ${a.alamat}`);
   }
 
-  // ── 5. Iuran per komunitas ────────────────────────────────────────────────────
-  console.log("\nSeeding iuran...");
+  // ── 5. Jenis iuran + tagihan per komunitas ─────────────────────────────────────
+  console.log("\nSeeding jenis iuran + tagihan...");
 
   // 6 bulan terakhir: Feb–Jul 2026
   const PERIODE = ["2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07"];
@@ -179,7 +181,33 @@ async function main() {
     return new Date(y, m - 1, hari);
   }
 
-  // Semua anggota RT 01 (termasuk admin & pengurus)
+  // Buat jenis iuran default (bulanan) untuk sebuah komunitas
+  async function seedJenisDefault(komId: number, nominal: number) {
+    await prisma.jenisIuran.deleteMany({ where: { komunitasId: komId } });
+    return prisma.jenisIuran.create({
+      data: {
+        komunitasId: komId,
+        nama: "Iuran Bulanan",
+        jumlah: nominal,
+        intervalBulan: 1,
+        isDefault: true,
+      },
+    });
+  }
+
+  // ── RT 01 ──
+  const jenisBulananRT01 = await seedJenisDefault(komRT01.id, JUMLAH_RT01);
+  // Iuran tambahan RT 01: Kebersihan tiap 3 bulan
+  const jenisKebersihanRT01 = await prisma.jenisIuran.create({
+    data: {
+      komunitasId: komRT01.id,
+      nama: "Iuran Kebersihan",
+      jumlah: 15000,
+      intervalBulan: 3,
+      isDefault: false,
+    },
+  });
+
   const semuaRT01 = await prisma.anggota.findMany({
     where: { komunitasId: komRT01.id },
     select: { id: true, nama: true },
@@ -188,14 +216,15 @@ async function main() {
   await prisma.iuran.deleteMany({ where: { komunitasId: komRT01.id } });
 
   for (const anggota of semuaRT01) {
+    // Iuran bulanan
     for (let i = 0; i < PERIODE.length; i++) {
       const periode = PERIODE[i];
-      // 5 bulan pertama lunas, bulan terakhir (Juli) belum bayar
-      const lunas = i < 5;
+      const lunas = i < 5; // Juli belum bayar
       await prisma.iuran.create({
         data: {
           anggotaId: anggota.id,
           komunitasId: komRT01.id,
+          jenisIuranId: jenisBulananRT01.id,
           periode,
           jumlah: JUMLAH_RT01,
           status: lunas ? "LUNAS" : "BELUM_BAYAR",
@@ -203,10 +232,27 @@ async function main() {
         },
       });
     }
-    console.log(`  ✓ Iuran ${PERIODE.length}x → ${anggota.nama}`);
+    // Iuran kebersihan: tiap 3 bulan → Feb, Mei (Feb lunas, Mei belum)
+    for (const [idx, periode] of ["2026-02", "2026-05"].entries()) {
+      const lunas = idx === 0;
+      await prisma.iuran.create({
+        data: {
+          anggotaId: anggota.id,
+          komunitasId: komRT01.id,
+          jenisIuranId: jenisKebersihanRT01.id,
+          periode,
+          jumlah: 15000,
+          status: lunas ? "LUNAS" : "BELUM_BAYAR",
+          tanggalBayar: lunas ? tanggalBayar(periode, 10) : null,
+        },
+      });
+    }
+    console.log(`  ✓ Iuran bulanan + kebersihan → ${anggota.nama}`);
   }
 
-  // Semua anggota RW 05
+  // ── RW 05 ──
+  const jenisBulananRW05 = await seedJenisDefault(komRW05.id, JUMLAH_RW05);
+
   const semuaRW05 = await prisma.anggota.findMany({
     where: { komunitasId: komRW05.id },
     select: { id: true, nama: true },
@@ -217,12 +263,12 @@ async function main() {
   for (const anggota of semuaRW05) {
     for (let i = 0; i < PERIODE.length; i++) {
       const periode = PERIODE[i];
-      // Variasi: anggota ganjil ada 1 bulan belum bayar (Mei), anggota genap semua lunas kecuali Juli
       const belumBayar = i === 5 || (anggota.id % 2 !== 0 && i === 3);
       await prisma.iuran.create({
         data: {
           anggotaId: anggota.id,
           komunitasId: komRW05.id,
+          jenisIuranId: jenisBulananRW05.id,
           periode,
           jumlah: JUMLAH_RW05,
           status: belumBayar ? "BELUM_BAYAR" : "LUNAS",
@@ -230,8 +276,11 @@ async function main() {
         },
       });
     }
-    console.log(`  ✓ Iuran ${PERIODE.length}x → ${anggota.nama}`);
+    console.log(`  ✓ Iuran bulanan → ${anggota.nama}`);
   }
+
+  // Komunitas Blok (De Naila) belum ada admin → cukup jenis default saja
+  await seedJenisDefault(komBlok.id, 50000);
 
   // ── 6. News per komunitas ─────────────────────────────────────────────────────
   console.log("\nSeeding news RT 01...");

@@ -19,6 +19,7 @@ const SELECT = {
   status: true,
   expiredAt: true,
   alamatInduk: true,
+  maxIuranTambahan: true,
   _count: { select: { anggota: true } },
   createdAt: true,
   updatedAt: true,
@@ -56,7 +57,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 }); }
 
-  const { nama, tipe, kode, kuotaAnggota, status, durasiHari, alamatInduk } =
+  const { nama, tipe, kode, kuotaAnggota, status, durasiHari, alamatInduk, maxIuranTambahan } =
     (body ?? {}) as Record<string, unknown>;
 
   try {
@@ -70,6 +71,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
         ...(VALID_STATUS.includes(status as StatusKomunitas) ? { status: status as StatusKomunitas } : {}),
         ...(durasiHari === null ? { durasiHari: null } : typeof durasiHari === "number" && durasiHari > 0 ? { durasiHari } : {}),
         ...(typeof alamatInduk === "string" ? { alamatInduk: alamatInduk.trim() || null } : {}),
+        ...(typeof maxIuranTambahan === "number" && [3, 6, 10].includes(maxIuranTambahan) ? { maxIuranTambahan } : {}),
       },
       select: SELECT,
     });

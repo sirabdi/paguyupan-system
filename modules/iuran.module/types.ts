@@ -11,6 +11,8 @@ export interface Iuran {
   createdAt: string;
   updatedAt: string;
   anggota: { id: number; nama: string };
+  jenisIuranId: number | null;
+  jenisIuran: { id: number; nama: string; isDefault: boolean } | null;
 }
 
 export const STATUS_IURAN_LABEL: Record<StatusIuran, string> = {

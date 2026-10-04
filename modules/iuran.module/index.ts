@@ -15,12 +15,21 @@ export { STATUS_IURAN_LABEL } from "./types";
 export interface IuranFilter {
   periode?: string;
   status?: StatusIuranFilter;
+  // "default" = iuran bulanan bawaan; angka = id jenis iuran tertentu; undefined = semua
+  jenisIuranId?: number | "default";
+}
+
+function applyIuranParams(params: URLSearchParams, filter: IuranFilter) {
+  if (filter.periode) params.set("periode", filter.periode);
+  if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+  if (filter.jenisIuranId !== undefined) {
+    params.set("jenisIuranId", String(filter.jenisIuranId));
+  }
 }
 
 export async function fetchIuran(filter: IuranFilter): Promise<Iuran[]> {
   const params = new URLSearchParams();
-  if (filter.periode) params.set("periode", filter.periode);
-  if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+  applyIuranParams(params, filter);
 
   const res = await fetchClient(`/api/iuran?${params.toString()}`);
   if (!res.ok) throw await toError(res, "Gagal memuat data iuran");
@@ -31,8 +40,7 @@ export async function fetchIuranPaginated(
   filter: IuranFilter & { page: number },
 ): Promise<PaginatedResponse<Iuran>> {
   const params = new URLSearchParams();
-  if (filter.periode) params.set("periode", filter.periode);
-  if (filter.status && filter.status !== "ALL") params.set("status", filter.status);
+  applyIuranParams(params, filter);
   params.set("page", String(filter.page));
 
   const res = await fetchClient(`/api/iuran?${params.toString()}`);

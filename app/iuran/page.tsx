@@ -18,10 +18,12 @@ export default async function IuranPage() {
   }
 
   const canBayar = session.role === "ADMIN" || session.role === "BENDAHARA";
+  // Hanya Admin yang boleh mengakses konfigurasi jenis iuran
+  const canManageJenis = session.role === "ADMIN";
 
   return (
     <MobileShell title="Iuran Anggota" backHref="/guest">
-      <IuranTable canBayar={canBayar} />
+      <IuranTable canBayar={canBayar} canManageJenis={canManageJenis} />
     </MobileShell>
   );
 }

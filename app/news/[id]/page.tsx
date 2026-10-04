@@ -98,11 +98,15 @@ export default async function NewsDetailPage({ params }: PageProps) {
           <ClockIcon className="size-3" />
           <span>{formatDate(news.createdAt.toISOString())}</span>
           <span>·</span>
-          <span>{news.penulis.nama}</span>
-          <span>·</span>
-          <span className="text-blue-500">
-            {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
-          </span>
+          <span>{news.penulis?.nama ?? "Pengguna dihapus"}</span>
+          {news.penulis && (
+            <>
+              <span>·</span>
+              <span className="text-blue-500">
+                {ROLE_LABEL[news.penulis.role] ?? news.penulis.role}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Konten */}
