@@ -35,12 +35,16 @@ function buildNewsItem(raw: {
   bannerUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
-  penulis: { id: number; nama: string; role: string };
+  penulis: { id: number; nama: string; role: string } | null;
   _count: { komentar: number; like: number };
   like: { id: number }[];
 }) {
-  const { like, ...rest } = raw;
-  return { ...rest, liked: like.length > 0 };
+  const { like, penulis, ...rest } = raw;
+  return {
+    ...rest,
+    penulis: penulis ?? { id: 0, nama: "Pengguna dihapus", role: "ANGGOTA" },
+    liked: like.length > 0,
+  };
 }
 
 // GET /api/news?q=keyword&page=1  — semua role yang sudah login

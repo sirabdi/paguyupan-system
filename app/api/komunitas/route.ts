@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdmin } from "@/lib/auth";
+import { getIuranDefault } from "@/lib/konfigurasi";
 import type { TipeKomunitas, StatusKomunitas } from "@/modules/komunitas.module";
 
 const VALID_TIPE: TipeKomunitas[] = ["RT", "RW", "BLOK", "CUSTOM"];
@@ -17,6 +18,7 @@ export const SELECT = {
   status: true,
   expiredAt: true,
   alamatInduk: true,
+  maxIuranTambahan: true,
   _count: { select: { anggota: true } },
   createdAt: true,
   updatedAt: true,
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Body harus JSON yang valid" }, { status: 400 }); }
 
-  const { nama, tipe, kode, kuotaAnggota, status, durasiHari, alamatInduk } =
+  const { nama, tipe, kode, kuotaAnggota, status, durasiHari, alamatInduk, maxIuranTambahan } =
     (body ?? {}) as Record<string, unknown>;
 
   if (typeof nama !== "string" || nama.trim() === "") {
@@ -61,6 +63,10 @@ export async function POST(req: Request) {
     ? (status as StatusKomunitas)
     : "TRIAL";
   const resolvedDurasi = typeof durasiHari === "number" && durasiHari > 0 ? durasiHari : null;
+  const resolvedMaxIuran =
+    typeof maxIuranTambahan === "number" && [3, 6, 10].includes(maxIuranTambahan)
+      ? maxIuranTambahan
+      : 3;
 
   try {
     const komunitas = await prisma.komunitas.create({
@@ -72,9 +78,23 @@ export async function POST(req: Request) {
         status: resolvedStatus,
         durasiHari: resolvedDurasi,
         alamatInduk: typeof alamatInduk === "string" ? alamatInduk.trim() : null,
+        maxIuranTambahan: resolvedMaxIuran,
       },
       select: SELECT,
     });
+
+    // Setiap komunitas otomatis punya 1 jenis iuran default: "Iuran Bulanan"
+    const defaultNominal = await getIuranDefault();
+    await prisma.jenisIuran.create({
+      data: {
+        komunitasId: komunitas.id,
+        nama: "Iuran Bulanan",
+        jumlah: new Prisma.Decimal(defaultNominal),
+        intervalBulan: 1,
+        isDefault: true,
+      },
+    });
+
     return NextResponse.json(komunitas, { status: 201 });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

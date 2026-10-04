@@ -233,6 +233,7 @@ export function KomunitasDashboard({
                 durasi: editTarget.durasiHari
                   ? String(editTarget.durasiHari)
                   : "null",
+                maxIuranTambahan: String(editTarget.maxIuranTambahan),
               }}
               onSubmit={(data) =>
                 updateMutation.mutate({ id: editTarget.id, data })

@@ -12,13 +12,29 @@ export async function GET(req: Request) {
   const periode = searchParams.get("periode");
   const status = searchParams.get("status");
   const pageStr = searchParams.get("page");
+  const jenisIuranParam = searchParams.get("jenisIuranId");
+
+  // "default" → iuran bulanan bawaan (isDefault=true) atau legacy (null)
+  // angka → jenis iuran spesifik
+  let jenisFilter: Prisma.IuranWhereInput = {};
+  if (jenisIuranParam === "default") {
+    jenisFilter = {
+      OR: [{ jenisIuranId: null }, { jenisIuran: { isDefault: true } }],
+    };
+  } else if (jenisIuranParam && Number.isInteger(Number(jenisIuranParam))) {
+    jenisFilter = { jenisIuranId: Number(jenisIuranParam) };
+  }
 
   const where: Prisma.IuranWhereInput = {
     ...komunitasFilter(auth.session),
     ...(periode ? { periode } : {}),
     ...(status === "BELUM_BAYAR" || status === "LUNAS" ? { status } : {}),
+    ...jenisFilter,
   };
-  const include = { anggota: { select: { id: true, nama: true } } } as const;
+  const include = {
+    anggota: { select: { id: true, nama: true } },
+    jenisIuran: { select: { id: true, nama: true, isDefault: true } },
+  } as const;
   const orderBy = [{ periode: "desc" as const }, { anggotaId: "asc" as const }];
 
   if (pageStr !== null) {
