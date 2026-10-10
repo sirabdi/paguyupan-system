@@ -6,7 +6,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 const POLL_INTERVAL_MS = 30_000;
-const PUBLIC_PATHS = ["/login"];
+// Halaman yang dibuka tanpa login — jangan dipaksa ke /login (samakan dengan PUBLIC_ROUTES di proxy.ts)
+const PUBLIC_PATHS = ["/login", "/daftar"];
 
 function SessionWatcher() {
   const router = useRouter();

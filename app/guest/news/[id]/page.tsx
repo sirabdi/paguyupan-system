@@ -1,6 +1,6 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { requirePageSession } from "@/lib/session";
 import { MobileShell, NewsDetailView } from "@/components/organisms";
 
 export const metadata: Metadata = {
@@ -16,8 +16,7 @@ export default async function GuestNewsDetailPage({
   params,
   searchParams,
 }: PageProps) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
 
   const { id } = await params;
   const newsId = Number(id);

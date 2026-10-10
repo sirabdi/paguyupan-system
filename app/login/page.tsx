@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -171,7 +172,13 @@ export default function LoginPage() {
                 </form>
 
                 <p className="text-center text-xs text-zinc-400">
-                  Hubungi Admin jika belum memiliki akses.
+                  Anggota: hubungi Admin komunitas untuk mendapatkan akses.
+                </p>
+                <p className="text-center text-xs text-zinc-500">
+                  Pengurus komunitas baru?{" "}
+                  <Link href="/daftar" className="font-medium text-blue-500 hover:underline">
+                    Daftarkan komunitas
+                  </Link>
                 </p>
               </>
             ) : forgotStep === "email" ? (

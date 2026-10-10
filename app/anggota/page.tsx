@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { requirePageSession } from "@/lib/session";
 import { AnggotaTable, MobileShell } from "@/components/organisms";
 
 export const metadata: Metadata = {
@@ -9,8 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AnggotaPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
   if (session.role !== "ADMIN") redirect("/guest");
 
   return (

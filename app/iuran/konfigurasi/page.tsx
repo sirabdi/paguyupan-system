@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { requirePageSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { JenisIuranManager, MobileShell } from "@/components/organisms";
 
@@ -10,8 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function KonfigurasiIuranPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
   // Hanya Admin yang boleh mengatur jenis iuran
   if (session.role !== "ADMIN") redirect("/iuran");
 

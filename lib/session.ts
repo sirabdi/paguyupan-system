@@ -1,8 +1,10 @@
 import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { Role } from "@/modules/auth.module";
 import { prisma } from "@/lib/prisma";
+import { statusTampil, type AlasanBlokir } from "@/modules/langganan.module/paket";
 
 const SESSION_COOKIE = "session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8; // 8 jam
@@ -64,8 +66,11 @@ export async function createSession(payload: Omit<SessionPayload, "sessionId">):
   });
 }
 
+// Akses berdasarkan status langganan komunitas. SUPERADMIN selalu aktif.
+export type AksesKomunitas = { aktif: true } | { aktif: false; alasan: AlasanBlokir };
+
 export type SessionResult =
-  | { ok: true; session: SessionPayload }
+  | { ok: true; session: SessionPayload; akses: AksesKomunitas }
   | { ok: false; reason: "no_token" | "invalid_token" | "kicked" | "expired" };
 
 export async function getSessionWithReason(): Promise<SessionResult> {
@@ -78,6 +83,9 @@ export async function getSessionWithReason(): Promise<SessionResult> {
 
   const dbSession = await prisma.userSession.findUnique({
     where: { id: payload.sessionId },
+    include: {
+      anggota: { select: { komunitas: { select: { status: true, expiredAt: true } } } },
+    },
   });
 
   if (!dbSession) return { ok: false, reason: "kicked" };
@@ -88,12 +96,32 @@ export async function getSessionWithReason(): Promise<SessionResult> {
   }
   if (dbSession.expiresAt < new Date()) return { ok: false, reason: "expired" };
 
-  return { ok: true, session: payload };
+  // Status langganan dibaca dari DB tiap request (bukan dari JWT) agar pembayaran,
+  // kedaluwarsa, dan suspend langsung berlaku tanpa login ulang.
+  const komunitas = dbSession.anggota.komunitas;
+  let akses: AksesKomunitas = { aktif: true };
+  if (payload.role !== "SUPERADMIN" && komunitas) {
+    const st = statusTampil(komunitas);
+    if (st !== "AKTIF") akses = { aktif: false, alasan: st };
+  }
+
+  return { ok: true, session: payload, akses };
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
   const result = await getSessionWithReason();
   return result.ok ? result.session : null;
+}
+
+/**
+ * Untuk Server Component halaman yang butuh login + langganan aktif.
+ * Belum login → /login. Langganan tidak aktif → /langganan.
+ */
+export async function requirePageSession(): Promise<SessionPayload> {
+  const result = await getSessionWithReason();
+  if (!result.ok) redirect("/login");
+  if (!result.akses.aktif) redirect("/langganan");
+  return result.session;
 }
 
 export async function deleteSession(): Promise<void> {

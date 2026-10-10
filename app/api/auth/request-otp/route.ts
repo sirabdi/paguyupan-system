@@ -8,7 +8,7 @@ const VALID_PURPOSES = ["verify_email", "change_password"] as const;
 type Purpose = (typeof VALID_PURPOSES)[number];
 
 export async function POST(req: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAuth({ izinkanTanpaLangganan: true });
   if (!auth.ok) return auth.response;
 
   const body = (await req.json().catch(() => ({}))) as { purpose?: string };

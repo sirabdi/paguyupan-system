@@ -1,16 +1,22 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
-import { getSession, type SessionPayload } from "@/lib/session";
+import { getSessionWithReason, type SessionPayload } from "@/lib/session";
 
 export type AuthResult =
   | { ok: true; session: SessionPayload }
   | { ok: false; response: NextResponse };
 
-/** Pastikan request memiliki session yang valid. */
-export async function requireAuth(): Promise<AuthResult> {
-  const session = await getSession();
-  if (!session) {
+/**
+ * Pastikan request memiliki session yang valid DAN langganan komunitasnya aktif.
+ * Endpoint yang tetap harus bisa dipakai saat langganan habis (auth, langganan)
+ * memanggil dengan `{ izinkanTanpaLangganan: true }`.
+ */
+export async function requireAuth(
+  opts: { izinkanTanpaLangganan?: boolean } = {},
+): Promise<AuthResult> {
+  const result = await getSessionWithReason();
+  if (!result.ok) {
     return {
       ok: false,
       response: NextResponse.json(
@@ -19,7 +25,16 @@ export async function requireAuth(): Promise<AuthResult> {
       ),
     };
   }
-  return { ok: true, session };
+  if (!result.akses.aktif && !opts.izinkanTanpaLangganan) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Langganan komunitas tidak aktif", alasan: result.akses.alasan },
+        { status: 402 }
+      ),
+    };
+  }
+  return { ok: true, session: result.session };
 }
 
 /** Pastikan request memiliki session dengan role tertentu.

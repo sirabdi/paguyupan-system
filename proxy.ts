@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const SESSION_COOKIE = "session";
-const PUBLIC_ROUTES = ["/login"];
+const PUBLIC_ROUTES = ["/login", "/daftar"];
 const PUBLIC_PREFIXES = ["/news/"];
 
 const SUPERADMIN_PREFIX = "/superadmin";

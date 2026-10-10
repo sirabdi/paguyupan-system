@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth, komunitasFilter } from "@/lib/auth";
+import { PAKET } from "@/modules/langganan.module/paket";
 
 // GET /api/anggota?status=AKTIF&q=budi&page=1
 export async function GET(req: Request) {
@@ -130,6 +131,26 @@ export async function POST(req: Request) {
     if (dupAlamat) {
       return NextResponse.json(
         { error: `No. rumah "${alamat.trim()}" sudah ditempati oleh ${dupAlamat.nama}` },
+        { status: 409 },
+      );
+    }
+  }
+
+  // Cek kuota akun paket (admin & pengurus ikut dihitung)
+  if (komunitasId) {
+    const [kom, jumlahAkun] = await Promise.all([
+      prisma.komunitas.findUnique({
+        where: { id: komunitasId },
+        select: { kuotaAnggota: true, paket: true },
+      }),
+      prisma.anggota.count({ where: { komunitasId } }),
+    ]);
+    if (kom && jumlahAkun >= kom.kuotaAnggota) {
+      const namaPaket = kom.paket ? PAKET[kom.paket].label : "saat ini";
+      return NextResponse.json(
+        {
+          error: `Kuota akun paket ${namaPaket} penuh (${jumlahAkun}/${kom.kuotaAnggota}). Upgrade paket di menu Langganan untuk menambah anggota.`,
+        },
         { status: 409 },
       );
     }

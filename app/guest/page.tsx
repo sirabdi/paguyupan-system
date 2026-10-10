@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
-import { redirect } from "next/navigation";
+import { requirePageSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { MobileGuestShell } from "@/components/organisms";
 
@@ -9,8 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GuestPage() {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
 
   const anggota = await prisma.anggota.findUnique({
     where: { id: session.anggotaId },

@@ -18,9 +18,8 @@ export default async function SuperadminPage() {
       id: true,
       nama: true,
       tipe: true,
-      kode: true,
+      paket: true,
       kuotaAnggota: true,
-      durasiHari: true,
       status: true,
       expiredAt: true,
       alamatInduk: true,
@@ -44,7 +43,7 @@ export default async function SuperadminPage() {
       <div className="flex items-center justify-between gap-3 border-b bg-white px-6 py-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-900">Superadmin Panel</h1>
-          <p className="text-xs text-zinc-400">Kelola komunitas yang terdaftar</p>
+          <p className="text-xs text-zinc-400">Pantau komunitas & langganan</p>
         </div>
         <LogoutButton />
       </div>

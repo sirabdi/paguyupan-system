@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { requirePageSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { MobileShell, NewsForm } from "@/components/organisms";
 import type { News } from "@/modules";
@@ -12,8 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewsEditPage({ params }: PageProps) {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requirePageSession();
   if (session.role !== "ADMIN" && session.role !== "SEKERTARIS")
     redirect("/news");
 

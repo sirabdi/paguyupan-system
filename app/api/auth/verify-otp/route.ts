@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyOtp } from "@/lib/otp";
 
 export async function POST(req: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAuth({ izinkanTanpaLangganan: true });
   if (!auth.ok) return auth.response;
 
   const body = (await req.json().catch(() => null)) as { code?: string } | null;

@@ -190,6 +190,47 @@ Endpoint `/api/cron/iuran-bulanan` proteksi via header `Authorization: Bearer <C
   ```
   0 0 1 * * curl -H "Authorization: Bearer $CRON_SECRET" https://domain/api/cron/iuran-bulanan
   ```
+- Hanya menagih komunitas dengan langganan aktif.
+
+Endpoint `/api/cron/langganan-harian` (jadwal `0 1 * * *` = 08.00 WIB):
+email pengingat H-7 & H-1 ke Admin, tandai invoice lewat batas bayar → `EXPIRED`,
+hapus pendaftaran yang tidak dibayar dalam 7 hari.
+
+## Pendaftaran & Langganan (SaaS)
+
+Alur: `/daftar` (email → OTP → data admin & komunitas) → akun **ADMIN** + komunitas
+`MENUNGGU_PEMBAYARAN` → `/langganan` (pilih paket & durasi) → Xendit Invoice →
+webhook `PAID` → komunitas `AKTIF` + `expiredAt`.
+
+| Paket | Kuota akun (termasuk admin/pengurus) | Iuran tambahan | Harga 1/3/9/12/24 bln |
+|---|---|---|---|
+| Basic | 20 | 3 | 29rb / 82rb / 235rb / 295rb / 520rb |
+| Pro | 50 | 6 | 59rb / 168rb / 478rb / 599rb / 1.059rb |
+| Max | 120 | 10 | 99rb / 282rb / 799rb / 999rb / 1.779rb |
+
+Konfigurasi paket ada di `modules/langganan.module/paket.ts`.
+
+- **Perpanjang paket sama** → periode baru dimulai dari `expiredAt` lama.
+- **Ganti paket saat aktif** → sisa nilai rupiah paket lama dikonversi menjadi bonus hari
+  di paket baru (`hitungPeriode`). Downgrade ditolak jika jumlah akun > kuota paket tujuan.
+- **Langganan tidak aktif** (belum bayar / kedaluwarsa / suspend) → user tetap bisa login,
+  semua halaman diarahkan ke `/langganan`, API mengembalikan **402** (kecuali auth & langganan).
+  Penegakan ada di `getSessionWithReason` (`lib/session.ts`): status dibaca dari DB tiap request.
+- **Webhook** `POST /api/webhooks/xendit` diverifikasi dengan header `x-callback-token`
+  dan idempoten (callback berulang hanya diproses sekali).
+
+| Endpoint | Akses |
+|---|---|
+| `POST /api/daftar/otp` | publik — kirim OTP (60 dtk/email, 5 req/15 mnt/IP) |
+| `POST /api/daftar/verifikasi` | publik — cek OTP (maks 5 salah), set cookie token pendaftaran 30 mnt |
+| `POST /api/daftar` | butuh cookie token pendaftaran |
+| `GET /api/langganan` | semua role login (admin dapat estimasi & riwayat) |
+| `POST /api/langganan/checkout` | Admin — buat invoice Xendit |
+| `POST /api/webhooks/xendit` | Xendit (header `x-callback-token`) |
+
+**Uji di lokal:** webhook butuh URL publik — jalankan tunnel (`cloudflared tunnel --url http://localhost:3000`
+atau `ngrok http 3000`), daftarkan `https://<tunnel>/api/webhooks/xendit` di Dashboard Xendit (mode Test),
+lalu bayar invoice lewat tombol simulasi di halaman pembayaran Xendit test.
 
 ## Perintah berguna
 

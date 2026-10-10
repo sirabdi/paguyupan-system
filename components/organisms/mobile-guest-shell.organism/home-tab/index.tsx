@@ -41,20 +41,22 @@ export function HomeTab({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="bg-white px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl font-bold text-zinc-900">Berita Terkini</h1>
-            <div className="mt-1 flex items-center gap-2">
-              <p className="text-xs text-zinc-400">Hai, {firstName}</p>
+            <div className="mt-1 flex min-w-0 items-center gap-2">
+              <p className="shrink-0 whitespace-nowrap text-xs text-zinc-400">Hai, {firstName}</p>
               {komunitasNama && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="min-w-0 max-w-full shrink justify-start gap-1" title={komunitasNama}>
                   <MapPinIcon className="size-3 shrink-0" />
                   <span className="truncate">{komunitasNama}</span>
                 </Badge>
               )}
             </div>
           </div>
-          <HeaderActions role={role} onNotifClick={onNotifClick} />
+          <div className="shrink-0">
+            <HeaderActions role={role} onNotifClick={onNotifClick} />
+          </div>
         </div>
 
         <SearchBar

@@ -1,5 +1,6 @@
 export * from "./format-date";
 export * from "./format-date-long";
+export * from "./format-date-numeric";
 export * from "./format-periode";
 export * from "./format-rupiah";
 export * from "./generate-periodes";

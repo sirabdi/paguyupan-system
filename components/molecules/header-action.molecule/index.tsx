@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BellIcon,
   ChevronRightIcon,
+  CreditCardIcon,
   MessageCircleIcon,
   MessageCircleReplyIcon,
   ReceiptIcon,
@@ -35,6 +36,7 @@ const MENU_BY_ROLE: Record<string, MenuItem[]> = {
     { label: "Anggota", href: "/anggota", icon: UsersIcon },
     { label: "Berita", href: "/news", icon: NewspaperIcon },
     { label: "Iuran", href: "/iuran", icon: WalletIcon },
+    { label: "Langganan", href: "/langganan", icon: CreditCardIcon },
   ],
   SEKERTARIS: [{ label: "Berita", href: "/news", icon: NewspaperIcon }],
   BENDAHARA: [{ label: "Iuran", href: "/iuran", icon: WalletIcon }],

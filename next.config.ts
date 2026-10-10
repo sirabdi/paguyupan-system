@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Izinkan dev server diakses lewat tunnel cloudflared (uji webhook Xendit / akses dari HP)
+  allowedDevOrigins: ["*.trycloudflare.com"],
   images: {
     localPatterns: [{ pathname: "/uploads/**" }],
     remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],

@@ -6,3 +6,5 @@ export * from "./komentar.module";
 export * from "./komunitas.module";
 export * from "./news.module";
 export * from "./notifikasi.module";
+export * from "./daftar.module";
+export * from "./langganan.module";

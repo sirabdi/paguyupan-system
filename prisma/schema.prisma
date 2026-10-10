@@ -37,6 +37,7 @@ model Anggota {
   sessions     UserSession[]
   komentar     Komentar[]
   like         Like[]
+  pembayaran   Pembayaran[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -44,17 +45,23 @@ model Anggota {
   @@map("anggota")
 }
 
+// OTP terikat ke akun (anggotaId) ATAU ke email (pendaftaran — akun belum ada).
 model OtpCode {
   id        Int      @id @default(autoincrement())
-  anggota   Anggota  @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
-  anggotaId Int      @map("anggota_id")
+  anggota   Anggota? @relation(fields: [anggotaId], references: [id], onDelete: Cascade)
+  anggotaId Int?     @map("anggota_id")
+  email     String?
+  ip        String?
   codeHash  String   @map("code_hash")
   purpose   String   @default("verify_email")
   expiresAt DateTime @map("expires_at")
   used      Boolean  @default(false)
+  percobaan Int      @default(0) // jumlah percobaan salah
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([anggotaId, purpose])
+  @@index([email, purpose])
+  @@index([ip, createdAt])
   @@map("otp_code")
 }
 
@@ -187,10 +194,24 @@ enum TipeKomunitas {
   CUSTOM
 }
 
+// Status administratif komunitas. "Kedaluwarsa" tidak disimpan —
+// diturunkan dari expiredAt < sekarang (lihat lib/langganan.ts).
 enum StatusKomunitas {
-  TRIAL
+  MENUNGGU_PEMBAYARAN
   AKTIF
   SUSPEND
+}
+
+enum Paket {
+  BASIC
+  PRO
+  MAX
+}
+
+enum StatusPembayaran {
+  PENDING
+  PAID
+  EXPIRED
 }
 
 enum StatusAnggota {
@@ -267,14 +288,18 @@ model Komunitas {
   id            Int             @id @default(autoincrement())
   nama          String
   tipe          TipeKomunitas
-  kode          String?         @unique
-  kuotaAnggota  Int             @default(50)             @map("kuota_anggota")
-  status        StatusKomunitas @default(TRIAL)
-  durasiHari    Int?            @map("durasi_hari")
+  // Paket langganan aktif. Null = belum pernah bayar.
+  paket         Paket?
+  // Kuota akun (termasuk admin & pengurus) — diisi otomatis sesuai paket
+  kuotaAnggota  Int             @default(20)             @map("kuota_anggota")
+  status        StatusKomunitas @default(MENUNGGU_PEMBAYARAN)
   expiredAt     DateTime?       @map("expired_at")
   alamatInduk   String?         @map("alamat_induk")
   // Kuota jumlah jenis iuran TAMBAHAN yang boleh dibuat admin (selain iuran bulanan default)
   maxIuranTambahan Int          @default(3)              @map("max_iuran_tambahan")
+  // Penanda email pengingat sudah dikirim untuk periode berjalan (direset saat perpanjang)
+  pengingatH7At DateTime?       @map("pengingat_h7_at")
+  pengingatH1At DateTime?       @map("pengingat_h1_at")
 
   anggota       Anggota[]
   news          News[]
@@ -283,9 +308,41 @@ model Komunitas {
   notifikasi    Notifikasi[]
   komentar      Komentar[]
   like          Like[]
+  pembayaran    Pembayaran[]
 
   createdAt     DateTime        @default(now())          @map("created_at")
   updatedAt     DateTime        @updatedAt               @map("updated_at")
 
+  @@index([status, expiredAt])
   @@map("komunitas")
+}
+
+// Pembayaran langganan via Xendit Invoice.
+model Pembayaran {
+  id              Int              @id @default(autoincrement())
+  komunitas       Komunitas        @relation(fields: [komunitasId], references: [id], onDelete: Cascade)
+  komunitasId     Int              @map("komunitas_id")
+  dibuatOleh      Anggota?         @relation(fields: [dibuatOlehId], references: [id], onDelete: SetNull)
+  dibuatOlehId    Int?             @map("dibuat_oleh_id")
+  externalId      String           @unique @map("external_id")
+  xenditInvoiceId String?          @unique @map("xendit_invoice_id")
+  invoiceUrl      String?          @db.Text @map("invoice_url")
+  paket           Paket
+  durasiBulan     Int              @map("durasi_bulan")
+  harga           Decimal          @db.Decimal(12, 2)
+  status          StatusPembayaran @default(PENDING)
+  metode          String?
+  // Hari tambahan hasil konversi sisa nilai paket lama (saat ganti paket)
+  bonusHari       Int              @default(0) @map("bonus_hari")
+  periodeMulai    DateTime?        @map("periode_mulai")
+  periodeSelesai  DateTime?        @map("periode_selesai")
+  kedaluwarsaAt   DateTime         @map("kedaluwarsa_at") // batas bayar invoice
+  paidAt          DateTime?        @map("paid_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([komunitasId, status])
+  @@index([status, kedaluwarsaAt])
+  @@map("pembayaran")
 }

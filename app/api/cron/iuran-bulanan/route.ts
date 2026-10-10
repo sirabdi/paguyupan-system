@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { periodeSekarang, formatRupiah } from "@/utils";
 
-// Cron job: buat tagihan iuran periode berjalan untuk semua anggota AKTIF.
+// Cron job: buat tagihan iuran periode berjalan untuk semua anggota AKTIF
+// di komunitas yang langganannya aktif.
 // Menagih:
 //   1. Iuran bulanan default tiap komunitas (JenisIuran.isDefault, interval 1 bulan).
 //   2. Iuran tambahan aktif yang JATUH TEMPO pada periode ini
@@ -36,8 +37,10 @@ export async function GET(req: Request) {
   });
 
   // Semua jenis iuran aktif, dikelompokkan per komunitas
+  // Hanya komunitas dengan langganan aktif yang ditagih
+  const now = new Date();
   const jenisList = await prisma.jenisIuran.findMany({
-    where: { aktif: true },
+    where: { aktif: true, komunitas: { status: "AKTIF", expiredAt: { gt: now } } },
     select: {
       id: true,
       komunitasId: true,

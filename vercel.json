@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/iuran-bulanan",
       "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/langganan-harian",
+      "schedule": "0 1 * * *"
     }
   ]
 }

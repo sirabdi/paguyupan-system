@@ -17,35 +17,42 @@ import {
 import {
   TIPE_LABEL,
   STATUS_LABEL,
-  MAX_IURAN_TAMBAHAN_OPTIONS,
+  PAKET,
+  PAKET_LIST,
+  type Komunitas,
   type KomunitasInput,
   type TipeKomunitas,
   type StatusKomunitas,
 } from "@/modules";
 
 const TIPE_OPTIONS: TipeKomunitas[] = ["RT", "RW", "BLOK", "CUSTOM"];
-const STATUS_OPTIONS: StatusKomunitas[] = ["TRIAL", "AKTIF", "SUSPEND"];
+const STATUS_OPTIONS: StatusKomunitas[] = ["MENUNGGU_PEMBAYARAN", "AKTIF", "SUSPEND"];
+const TANPA_PAKET = "NONE";
 
-export const DURASI_OPTIONS: { label: string; days: number | null }[] = [
-  { label: "Tidak ada batas waktu", days: null },
-  { label: "30 Hari", days: 30 },
-  { label: "90 Hari", days: 90 },
-  { label: "1 Tahun", days: 365 },
-  { label: "2 Tahun", days: 730 },
-  { label: "3 Tahun", days: 1095 },
-];
-
-type FormValues = Omit<KomunitasInput, "kode" | "durasiHari" | "maxIuranTambahan"> & {
-  durasi: string;
-  maxIuranTambahan: string;
+type FormValues = {
+  nama: string;
+  tipe: TipeKomunitas;
+  alamatInduk: string;
+  status: StatusKomunitas;
+  paket: string; // Paket | "NONE"
+  expiredDate: string; // yyyy-mm-dd (lokal)
 };
 
+function toDateInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// Edit komunitas oleh Superadmin: data dasar + intervensi manual langganan
+// (suspend, ganti paket, atur masa berlaku untuk kompensasi).
 export function KomunitasForm({
-  defaultValues,
+  komunitas,
   onSubmit,
   isPending,
 }: {
-  defaultValues?: Partial<FormValues>;
+  komunitas: Komunitas;
   onSubmit: (data: KomunitasInput) => void;
   isPending: boolean;
 }) {
@@ -56,27 +63,24 @@ export function KomunitasForm({
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      nama: "",
-      tipe: "RT",
-      kuotaAnggota: 50,
-      status: "TRIAL",
-      alamatInduk: "",
-      durasi: "null",
-      maxIuranTambahan: "3",
-      ...defaultValues,
+      nama: komunitas.nama,
+      tipe: komunitas.tipe,
+      alamatInduk: komunitas.alamatInduk ?? "",
+      status: komunitas.status,
+      paket: komunitas.paket ?? TANPA_PAKET,
+      expiredDate: toDateInput(komunitas.expiredAt),
     },
   });
 
-  function onSubmitForm(values: FormValues) {
-    const days = values.durasi === "null" ? null : Number(values.durasi);
+  function onSubmitForm(v: FormValues) {
     onSubmit({
-      nama: values.nama,
-      tipe: values.tipe,
-      kuotaAnggota: values.kuotaAnggota,
-      status: values.status,
-      alamatInduk: values.alamatInduk,
-      durasiHari: days,
-      maxIuranTambahan: Number(values.maxIuranTambahan),
+      nama: v.nama,
+      tipe: v.tipe,
+      alamatInduk: v.alamatInduk,
+      status: v.status,
+      paket: v.paket === TANPA_PAKET ? null : (v.paket as KomunitasInput["paket"]),
+      // Berlaku sampai akhir hari yang dipilih (waktu lokal)
+      expiredAt: v.expiredDate ? new Date(`${v.expiredDate}T23:59:59`).toISOString() : null,
     });
   }
 
@@ -86,29 +90,20 @@ export function KomunitasForm({
         <Label className="gap-0.5">
           Nama Komunitas <span className="text-destructive">*</span>
         </Label>
-        <Input
-          placeholder="Cth: RT 01 RW 05 Kel. Cibadak"
-          {...register("nama", { required: "Wajib diisi" })}
-        />
-        {errors.nama && (
-          <p className="text-xs text-destructive">{errors.nama.message}</p>
-        )}
+        <Input {...register("nama", { required: "Wajib diisi" })} />
+        {errors.nama && <p className="text-xs text-destructive">{errors.nama.message}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-1">
-          <Label className="gap-0.5">
-            Tipe <span className="text-destructive">*</span>
-          </Label>
+          <Label>Tipe</Label>
           <Controller
             control={control}
             name="tipe"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="Pilih tipe">
-                    {field.value ? TIPE_LABEL[field.value] : undefined}
-                  </SelectValue>
+                  <SelectValue>{TIPE_LABEL[field.value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {TIPE_OPTIONS.map((t) => (
@@ -123,20 +118,14 @@ export function KomunitasForm({
         </div>
 
         <div className="grid gap-1">
-          <Label className="gap-0.5">
-            Status <span className="text-destructive">*</span>
-          </Label>
+          <Label>Status</Label>
           <Controller
             control={control}
             name="status"
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="Pilih status">
-                    {field.value
-                      ? STATUS_LABEL[field.value as StatusKomunitas]
-                      : undefined}
-                  </SelectValue>
+                  <SelectValue>{STATUS_LABEL[field.value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((s) => (
@@ -152,99 +141,49 @@ export function KomunitasForm({
       </div>
 
       <div className="grid gap-1">
-        <Label className="gap-0.5">
-          Kuota Anggota <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          type="number"
-          min={1}
-          {...register("kuotaAnggota", {
-            required: true,
-            min: 1,
-            valueAsNumber: true,
-          })}
-        />
+        <Label>Alamat Komunitas</Label>
+        <Input {...register("alamatInduk")} />
       </div>
 
-      <div className="grid gap-1">
-        <Label className="gap-0.5">
-          Alamat Induk <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          placeholder="Cth: Kel. Cibadak, Kec. Tanah Sareal"
-          {...register("alamatInduk", { required: "Alamat induk wajib diisi" })}
-        />
-        {errors.alamatInduk && (
-          <p className="text-xs text-destructive">
-            {errors.alamatInduk.message}
-          </p>
-        )}
-      </div>
-
-      <div className="grid gap-1">
-        <Label className="gap-0.5">Masa Berlaku</Label>
-        <p className="text-[11px] text-zinc-400">
-          Durasi mulai dihitung saat admin pertama ditambahkan.
-        </p>
-        <Controller
-          control={control}
-          name="durasi"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Pilih durasi">
-                  {
-                    DURASI_OPTIONS.find((d) => String(d.days) === field.value)
-                      ?.label
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {DURASI_OPTIONS.map((d) => (
-                  <SelectItem
-                    key={String(d.days)}
-                    value={String(d.days)}
-                    label={d.label}
-                  >
-                    {d.label}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-1">
+          <Label>Paket</Label>
+          <Controller
+            control={control}
+            name="paket"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue>
+                    {field.value === TANPA_PAKET
+                      ? "Belum ada"
+                      : PAKET[field.value as keyof typeof PAKET].label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TANPA_PAKET} label="Belum ada">
+                    Belum ada
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
+                  {PAKET_LIST.map((p) => (
+                    <SelectItem key={p} value={p} label={PAKET[p].label}>
+                      {PAKET[p].label} ({PAKET[p].kuotaAnggota} akun)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </div>
 
-      <div className="grid gap-1">
-        <Label className="gap-0.5">Iuran Tambahan</Label>
-        <p className="text-[11px] text-zinc-400">
-          Batas jumlah jenis iuran tambahan yang bisa dibuat admin komunitas.
-        </p>
-        <Controller
-          control={control}
-          name="maxIuranTambahan"
-          render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="h-10 w-full">
-                <SelectValue placeholder="Pilih kuota">
-                  {field.value ? `${field.value} jenis iuran` : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {MAX_IURAN_TAMBAHAN_OPTIONS.map((n) => (
-                  <SelectItem
-                    key={n}
-                    value={String(n)}
-                    label={`${n} jenis iuran`}
-                  >
-                    {n} jenis iuran
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
+        <div className="grid gap-1">
+          <Label>Berlaku hingga</Label>
+          <Input type="date" className="h-10" {...register("expiredDate")} />
+        </div>
       </div>
+      <p className="-mt-2 text-[11px] text-zinc-400">
+        Ubah paket / masa berlaku hanya untuk penyesuaian manual (mis. kompensasi). Normalnya
+        diperbarui otomatis dari pembayaran.
+      </p>
 
       <DialogFooter>
         <Button type="submit" disabled={isPending}>
